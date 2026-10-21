@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.13 · 2026-10-21 -->
+<!-- version: r6.14 · 2026-10-21 -->
 <style>
   :root{
     --accent:#ff8fb1;
@@ -136,15 +136,23 @@
   .navItem.on{background:#fff;color:var(--accent-d)}
   .sideSort{margin-top:18px}
   .sortLabel{font-size:11px;opacity:.8;display:block;margin:0 4px 6px;font-weight:700}
-  /* 侧栏验证 TIPS 面板 */
+  /* 侧栏验证 TIPS 面板（可编辑） */
   .sideTips{
     flex:1 1 100%;background:#fff;border-radius:14px;padding:10px 12px;color:var(--ink);
-    font-size:11.5px;line-height:1.55;box-shadow:0 4px 14px rgba(0,0,0,.14);margin-top:2px;
+    box-shadow:0 4px 14px rgba(0,0,0,.14);margin-top:2px;
   }
-  .sideTips h4{font-size:12px;margin:0 0 6px;color:var(--accent-d)}
-  .sideTips ul{margin:0;padding-left:16px}
-  .sideTips li{margin:4px 0}
-  .sideTips b{color:var(--accent-d)}
+  .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .tipsHead h4{font-size:12px;margin:0;color:var(--accent-d)}
+  .tipsAdd{border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent-d);font-weight:800;
+    width:22px;height:22px;border-radius:7px;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .tipsAdd:active{background:var(--accent);color:#fff}
+  .tipsList{display:flex;flex-direction:column;gap:5px}
+  .tipRow{display:flex;align-items:center;gap:5px}
+  .tipRow input{flex:1;min-width:0;border:1px solid #eee;outline:none;font-size:11.5px;padding:4px 7px;border-radius:8px;color:var(--ink);font-family:inherit;background:#fff}
+  .tipRow input:focus{border-color:var(--accent)}
+  .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:18px;height:18px;border-radius:6px;font-size:13px;flex:0 0 auto;line-height:1;padding:0}
+  .tipDel:active{background:#f6d3dc}
+  .tipsHint{font-size:10.5px;color:#b3a9bb;margin-top:7px;text-align:center}
   .sort{
     width:100%;border:none;outline:none;background:rgba(255,255,255,.92);color:var(--ink);
     font-size:13px;font-weight:700;padding:9px 10px;border-radius:12px;cursor:pointer;
@@ -282,14 +290,12 @@
       <div class="navTitle">提示</div>
       <button class="navItem" id="tipsToggle">💡 验证TIPS</button>
       <div class="sideTips" id="sideTips" style="display:none">
-        <h4>验证流程小抄</h4>
-        <ul>
-          <li><b>无需验证</b>：勾选后任务整行置灰，视为跳过验证。</li>
-          <li><b>已分配</b>：点「分配」后自动进入 FT1 流程，显示「FT1测试中」。</li>
-          <li><b>FT1 测试</b> 三态：未分配→<b>FT1未测</b>；已分配→<b>FT1测试中</b>；点一下→<b>✓ FT1 已测</b>。</li>
-          <li><b>是否活动</b>：标记后侧栏「活动」筛选会列出该任务。</li>
-          <li>数据存本机，换网址用底部「导出/导入备份」搬运。</li>
-        </ul>
+        <div class="tipsHead">
+          <h4>验证流程小抄</h4>
+          <button class="tipsAdd" id="tipsAdd" title="添加一条提示">＋</button>
+        </div>
+        <div class="tipsList" id="tipsList"></div>
+        <div class="tipsHint">点文字直接改 · × 删除 · ＋ 新增</div>
       </div>
     </nav>
 
@@ -917,6 +923,39 @@
     $("#tipsToggle").classList.toggle("on", !open);
   };
 
+  // 验证 TIPS 可编辑（存本机 localStorage，持久化 + 可随备份搬运）
+  const TIPS_KEY = "startpage_tips_v1";
+  const DEFAULT_TIPS = [
+    "无需验证：勾选后任务整行置灰，视为跳过验证。",
+    "已分配：点「分配」后自动进入 FT1 流程，显示「FT1测试中」。",
+    "FT1 测试 三态：未分配→FT1未测；已分配→FT1测试中；点一下→✓ FT1 已测。",
+    "是否活动：标记后侧栏「活动」筛选会列出该任务。",
+    "数据存本机，换网址用底部「导出/导入备份」搬运。"
+  ];
+  let tips = loadTips();
+  function loadTips(){
+    try{ const r = JSON.parse(localStorage.getItem(TIPS_KEY)); if(Array.isArray(r)) return r; }catch(e){}
+    return DEFAULT_TIPS.slice();
+  }
+  function saveTips(){ localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); }
+  function renderTips(){
+    const list = $("#tipsList"); list.innerHTML = "";
+    tips.forEach((t,i)=>{
+      const row = document.createElement("div"); row.className = "tipRow";
+      const inp = document.createElement("input"); inp.type = "text"; inp.value = t; inp.maxLength = 200; inp.placeholder = "输入一条提示…";
+      inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); };
+      const del = document.createElement("button"); del.className = "tipDel"; del.textContent = "×"; del.title = "删除";
+      del.onclick = ()=>{ tips.splice(i,1); saveTips(); renderTips(); };
+      row.append(inp, del); list.appendChild(row);
+    });
+  }
+  renderTips();
+  $("#tipsAdd").onclick = ()=>{
+    tips.push(""); saveTips(); renderTips();
+    const inputs = $("#tipsList").querySelectorAll("input");
+    if(inputs.length) inputs[inputs.length-1].focus();
+  };
+
   // 分类 / 优先级 选择
   function bindChips(boxId, onPick){
     const box = $(boxId);
@@ -948,9 +987,10 @@
   function backupExport(){
     const data = {
       _app: "startpage",
-      _v: "r6.12",
+      _v: "r6.14",
       todos: localStorage.getItem(KEY),
-      versions: localStorage.getItem(KEY_V)
+      versions: localStorage.getItem(KEY_V),
+      tips: localStorage.getItem(TIPS_KEY)
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -970,8 +1010,9 @@
         if(!confirm("导入将覆盖当前所有任务与版本，确定继续？\n（建议先点「导出备份」留一份底）")) return;
         if(data.todos != null) localStorage.setItem(KEY, data.todos);
         if(data.versions != null) localStorage.setItem(KEY_V, data.versions);
-        todos = load(); versions = loadV();
-        refreshVerSel(); render();
+        if(data.tips != null) localStorage.setItem(TIPS_KEY, data.tips);
+        todos = load(); versions = loadV(); tips = loadTips();
+        refreshVerSel(); render(); renderTips();
       }catch(e){ alert("导入失败：" + e.message); }
     };
     r.readAsText(file);
