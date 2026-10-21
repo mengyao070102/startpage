@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.16 · 2026-10-21 -->
+<!-- version: r6.17 · 2026-10-21 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -148,9 +148,9 @@
     width:26px;height:26px;border-radius:8px;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
   .tipsAdd:active{background:var(--accent);color:#fff}
   .tipsList{display:flex;flex-direction:column;gap:7px}
-  .tipRow{display:flex;align-items:center;gap:7px}
-  .tipRow input{flex:1;min-width:0;border:1px solid #eee;outline:none;font-size:13px;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff}
-  .tipRow input:focus{border-color:var(--accent)}
+  .tipRow{display:flex;align-items:flex-start;gap:7px}
+  .tipRow textarea{flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;line-height:1.55;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff;resize:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
+  .tipRow textarea:focus{border-color:var(--accent)}
   .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:22px;height:22px;border-radius:7px;font-size:15px;flex:0 0 auto;line-height:1;padding:0}
   .tipDel:active{background:#f6d3dc}
   .tipsHint{font-size:11px;color:#b3a9bb;margin-top:9px;text-align:center}
@@ -944,8 +944,10 @@
     const list = $("#tipsList"); list.innerHTML = "";
     tips.forEach((t,i)=>{
       const row = document.createElement("div"); row.className = "tipRow";
-      const inp = document.createElement("input"); inp.type = "text"; inp.value = t; inp.maxLength = 200; inp.placeholder = "输入一条提示…";
-      inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); };
+      const inp = document.createElement("textarea"); inp.value = t; inp.rows = 1; inp.maxLength = 500;
+      inp.placeholder = "输入一条提示（可换行）…"; inp.style.height = "auto";
+      inp.style.height = Math.min(inp.scrollHeight, 160) + "px";
+      inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); inp.style.height = "auto"; inp.style.height = Math.min(inp.scrollHeight, 160) + "px"; };
       const del = document.createElement("button"); del.className = "tipDel"; del.textContent = "×"; del.title = "删除";
       del.onclick = ()=>{ tips.splice(i,1); saveTips(); renderTips(); };
       row.append(inp, del); list.appendChild(row);
@@ -954,7 +956,7 @@
   renderTips();
   $("#tipsAdd").onclick = ()=>{
     tips.push(""); saveTips(); renderTips();
-    const inputs = $("#tipsList").querySelectorAll("input");
+    const inputs = $("#tipsList").querySelectorAll("textarea");
     if(inputs.length) inputs[inputs.length-1].focus();
   };
 
