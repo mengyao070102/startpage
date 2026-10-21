@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>我的启动主页 · 待办清单</title>
+<!-- version: r6.12 · 2026-10-21 -->
+<style>
+  :root{
+    --accent:#ff8fb1;
+    --accent-d:#f06b97;
+    --accent-soft:#ffe3ee;
+    --accent-hover:#ffa7c4;
+    --bg1:#fff5fb;
+    --bg2:#eef4ff;
+    --ink:#3a2d3f;
+    --muted:#9b8aa3;
+    --card:#ffffff;
+    --ok:#3ec78f;
+    --shadow:0 10px 30px rgba(180,140,170,.18);
+    /* 分类颜色 */
+    --c-work:#5b9cff; --c-work-s:#e8f1ff;
+    --c-life:#3ec78f; --c-life-s:#e4f8f0;
+    --c-study:#b07cff; --c-study-s:#f1e9ff;
+    --c-other:#b0a8b8; --c-other-s:#f1eef3;
+    /* 优先级颜色 */
+    --p-high:#ff5b6e; --p-mid:#ffa53e; --p-low:#b0a8b8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100vh;
+    padding:18px 14px 40px;
+  }
+  .app{max-width:980px;margin:0 auto;display:flex;gap:18px;align-items:flex-start}
+  .sidebar{
+    flex:0 0 210px;position:sticky;top:18px;
+    background:linear-gradient(160deg,var(--accent),var(--accent-d));
+    color:#fff;border-radius:22px;padding:18px 14px;box-shadow:var(--shadow);
+  }
+  .main{flex:1;min-width:0}
+
+  /* 侧栏品牌区 */
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .brand .mascot{width:46px;height:46px;flex:0 0 auto}
+  .brandTitle{font-size:17px;font-weight:800}
+  .brand .hi{font-size:12px;opacity:.92;margin-top:2px}
+  .brand .date{font-size:11px;opacity:.85;margin-top:2px}
+
+  /* 进度条 */
+  .prog{
+    background:var(--card);border-radius:18px;padding:14px 16px;margin-top:14px;box-shadow:var(--shadow);
+  }
+  .prog .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .prog .row b{color:var(--ink)}
+  .bar{height:10px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,var(--ok),#7be0b4);transition:width .35s ease}
+
+  /* 添加栏 */
+  .add{
+    display:flex;gap:8px;margin-top:14px;background:var(--card);padding:10px;border-radius:18px;box-shadow:var(--shadow);
+  }
+  .add textarea{
+    flex:1;border:none;outline:none;font-size:15px;padding:10px 12px;border-radius:12px;background:var(--bg1);color:var(--ink);
+    resize:none;font-family:inherit;line-height:1.4;max-height:160px;overflow-y:auto;
+  }
+  .add button{
+    border:none;cursor:pointer;font-size:14px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent-d));
+    padding:0 16px;border-radius:12px;transition:transform .1s ease;
+  }
+  .add button:active{transform:scale(.94)}
+
+  /* 更多选项（默认折叠） */
+  .moreToggle{
+    display:block;width:100%;text-align:center;border:none;background:transparent;cursor:pointer;
+    color:var(--muted);font-size:12px;font-weight:700;margin-top:10px;padding:4px;
+  }
+  .moreToggle:active{color:var(--accent-d)}
+  .more{
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+    padding:0 14px;margin-top:6px;max-height:0;overflow:hidden;transition:max-height .25s ease,padding .25s ease;
+  }
+  .more.open{max-height:560px;padding:12px 14px}
+  .moreRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .moreRow .lbl{font-size:13px;color:var(--muted);width:42px;flex:0 0 auto}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    border:none;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:99px;
+    background:var(--bg1);color:var(--muted);transition:all .12s ease;
+  }
+  .chip.on{color:#fff}
+  .chip[data-v="work"].on{background:var(--c-work)}
+  .chip[data-v="life"].on{background:var(--c-life)}
+  .chip[data-v="study"].on{background:var(--c-study)}
+  .chip[data-v="other"].on{background:var(--c-other)}
+  .chip[data-v="高"].on{background:var(--p-high)}
+  .chip[data-v="中"].on{background:var(--p-mid)}
+  .chip[data-v="低"].on{background:var(--p-low)}
+  .moreRow input[type=date]{
+    border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);
+  }
+
+  /* 行内编辑 */
+  .editBox{background:var(--bg1);border-radius:14px;padding:10px;margin-top:2px}
+  .editText{
+    width:100%;border:none;outline:none;font-size:15px;padding:9px 11px;border-radius:10px;
+    background:#fff;color:var(--ink);margin-bottom:8px;
+  }
+  .editRow{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .editRow .lbl{font-size:12px;color:var(--muted);width:38px;flex:0 0 auto}
+  .editActions{display:flex;gap:8px;margin-top:10px}
+  .editActions button{
+    flex:1;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 0;border-radius:11px;transition:transform .1s;
+  }
+  .editActions button:active{transform:scale(.96)}
+  .btnSave{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff}
+  .btnCancel{background:#fff;color:var(--muted)}
+  .editBtn{
+    border:none;background:transparent;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:8px;flex:0 0 auto;
+  }
+  .editBtn:active{background:var(--accent-soft)}
+
+  /* 侧栏导航 */
+  .nav{display:flex;flex-direction:column;gap:6px}
+  .navTitle{font-size:11px;opacity:.8;margin:14px 4px 2px;font-weight:700;letter-spacing:.5px}
+  .navItem{
+    border:none;cursor:pointer;text-align:left;font-size:14px;font-weight:700;
+    padding:9px 12px;border-radius:12px;color:#fff;background:rgba(255,255,255,.16);transition:all .15s ease;
+  }
+  .navItem:hover{background:rgba(255,255,255,.28)}
+  .navItem.on{background:#fff;color:var(--accent-d)}
+  .sideSort{margin-top:18px}
+  .sortLabel{font-size:11px;opacity:.8;display:block;margin:0 4px 6px;font-weight:700}
+  .sort{
+    width:100%;border:none;outline:none;background:rgba(255,255,255,.92);color:var(--ink);
+    font-size:13px;font-weight:700;padding:9px 10px;border-radius:12px;cursor:pointer;
+  }
+
+  /* 列表 */
+  ul{list-style:none;margin:8px 0 0;padding:0}
+  li{
+    background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px;
+    display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow);
+    border-left:5px solid transparent;
+  }
+  li.over{border-left-color:var(--p-high)}
+  li.noverify{opacity:.5;filter:grayscale(.5);background:#faf8fb;border-left-color:#cfc6d6}
+  li.noverify:hover{opacity:.72}
+  .chk{
+    width:24px;height:24px;flex:0 0 auto;margin-top:1px;border-radius:50%;border:2px solid var(--accent);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;
+  }
+  .chk.done{background:var(--ok);border-color:var(--ok)}
+  .chk.done::after{content:"✓";color:#fff;font-size:14px;font-weight:800}
+  .body{flex:1;min-width:0}
+  .txt{font-size:15px;word-break:break-word;line-height:1.35}
+  .txt.done{text-decoration:line-through;color:var(--muted)}
+  .meta{display:flex;flex-wrap:wrap;align-items:center;align-content:flex-start;gap:6px;margin-top:8px}
+  .pill{
+    display:inline-flex;align-items:center;gap:4px;align-self:center;flex:0 0 auto;
+    font-size:11px;font-weight:700;line-height:1;white-space:nowrap;
+    padding:5px 8px;border-radius:7px;
+  }
+  .pill.pri::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.pri-高{color:var(--p-high);background:#ffe9ec}
+  .pill.pri-中{color:var(--p-mid);background:#fff3e2}
+  .pill.pri-低{color:var(--p-low);background:#f1eef3}
+  .pill.due{background:#eef1f6;color:#6b6477}
+  .pill.due.over{background:#ffe9ec;color:var(--p-high)}
+  .pill.who{background:#eef0ff;color:#6b6bd6}
+  .pill.who.empty{background:transparent;color:var(--muted);border:1px dashed #cfc6d6;padding:4px 8px}
+  .pill.act{background:#e6f7f4;color:#2aa39a}
+  .pill.assign{cursor:pointer;background:#eef1f6;color:#6b6477;user-select:none;transition:background .12s}
+  .pill.assign:hover{background:#e4e8f0}
+  .pill.assign::before{content:"";width:12px;height:12px;border-radius:4px;border:2px solid #b8b2c0;background:#fff;box-sizing:border-box;flex:0 0 auto}
+  .pill.assign.on{background:#e4f8f0;color:var(--ok)}
+  .pill.assign.on:hover{background:#d8f2e6}
+  .pill.assign.on::before{content:"✓";border-color:var(--ok);background:var(--ok);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+  .pill.noverify{cursor:pointer;background:#f0eef3;color:#9b8aa3;user-select:none;transition:background .12s}
+  .pill.noverify:hover{background:#e7e3ee}
+  .pill.noverify.on{background:#e9e3ef;color:#7a6f86;font-weight:800}
+  .pill.isAct{cursor:pointer;background:#fdeede;color:#e08a2e;user-select:none;transition:background .12s}
+  .pill.isAct:hover{background:#fbe4cf}
+  .pill.isAct.on{background:#ffe2bf;color:#cf7a14;font-weight:800}
+  .pill.ft1{cursor:pointer;background:#eaf2ff;color:#3b7dd8;user-select:none;transition:background .12s}
+  .pill.ft1:hover{background:#dde9ff}
+  .pill.ft1.on{background:#e3f6ee;color:var(--ok);font-weight:800}
+  .pill.ft1.unt{cursor:pointer;background:#f0eef3;color:#a99fb2;user-select:none}
+  .pill.ft1.unt:hover{background:#e7e3ee}
+  .del{
+    border:none;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 4px;border-radius:8px;flex:0 0 auto;
+  }
+  .del:active{background:var(--accent-soft)}
+  .pill.noteAdd{background:transparent;color:var(--muted);border:1px dashed #cfc6d6;cursor:pointer;padding:4px 8px}
+  .pill.noteAdd:hover{background:#faf7fb}
+  .pill.noteShow{background:#fff6e9;color:#cf7a14;cursor:pointer;padding:5px 8px}
+  .pill.noteShow:hover{background:#ffeccd}
+  .noteEdit{
+    flex:1 1 100%;width:100%;border:1px solid var(--accent);outline:none;font-size:12.5px;font-family:inherit;
+    line-height:1.5;color:var(--ink);background:#fff;border-radius:10px;padding:6px 9px;
+    resize:vertical;min-height:38px;
+  }
+  /* 版本块（任务显示在版本内） */
+  .verBlock{background:#fff;border:1px solid var(--accent-soft);border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
+  .verHead{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,var(--accent-soft),#fff)}
+  .verCaret{border:none;background:transparent;font-size:13px;color:var(--accent-d);cursor:pointer;width:24px;height:24px;border-radius:8px;flex:0 0 auto}
+  .verCaret:active{background:rgba(255,255,255,.7)}
+  .verName{font-size:15px;font-weight:800;color:var(--ink);flex:1;min-width:0;cursor:pointer}
+  .verCount{font-size:12px;color:var(--muted);font-weight:700;flex:0 0 auto}
+  .verBtn{border:none;background:transparent;font-size:15px;cursor:pointer;padding:2px 4px;border-radius:8px;flex:0 0 auto}
+  .verBtn:active{background:var(--accent-soft)}
+  .verTasks{list-style:none;margin:0;padding:6px 10px 10px}
+  .verTasks li{margin-bottom:8px}
+  .plain{margin-top:8px}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 0}
+
+  /* 底部小提示 */
+  .tip{text-align:center;color:var(--muted);font-size:12px;margin-top:22px;line-height:1.6}
+  .tip code{background:var(--accent-soft);color:var(--accent-d);padding:2px 6px;border-radius:6px}
+
+  @media (max-width:720px){
+    .app{flex-direction:column;gap:12px}
+    .sidebar{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    .brand{margin-bottom:0;flex:1 1 100%}
+    .nav{flex-direction:row;flex-wrap:wrap;gap:6px;flex:1 1 100%}
+    .navTitle{flex:1 1 100%;margin:6px 4px 0}
+    .navItem{flex:1 1 auto;text-align:center}
+    .sideSort{flex:1 1 100%;margin-top:6px}
+  }
+  .backupBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 2px 2px}
+  .bbtn{border:none;background:var(--bg1);color:var(--ink);font-size:12.5px;padding:7px 13px;border-radius:10px;cursor:pointer;transition:background .12s}
+  .bbtn:hover{background:var(--accent-soft)}
+  .btip{font-size:11.5px;color:#a99fb2}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="mascot" viewBox="0 0 100 100" aria-hidden="true">
+        <ellipse cx="50" cy="54" rx="38" ry="36" fill="#fff" opacity=".95"/>
+        <circle cx="37" cy="50" r="5.5" fill="#3a2d3f"/>
+        <circle cx="63" cy="50" r="5.5" fill="#3a2d3f"/>
+        <circle cx="39" cy="48" r="1.8" fill="#fff"/>
+        <circle cx="65" cy="48" r="1.8" fill="#fff"/>
+        <path d="M38 64 Q50 74 62 64" stroke="#3a2d3f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <circle cx="30" cy="62" r="5" fill="#ffb3cd" opacity=".7"/>
+        <circle cx="70" cy="62" r="5" fill="#ffb3cd" opacity=".7"/>
+        <path d="M50 18 Q44 8 38 14 Q46 16 50 20 Q54 16 62 14 Q56 8 50 18" fill="#ff8fb1"/>
+      </svg>
+      <div>
+        <div class="brandTitle">我的待办</div>
+        <div class="hi" id="hi">你好呀 👋</div>
+        <div class="date" id="date">—</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="navTitle">清单</div>
+      <button class="navItem on" data-f="all">全部</button>
+      <button class="navItem" data-f="todo">待办</button>
+      <button class="navItem" data-f="done">已完成</button>
+      <div class="navTitle">分类</div>
+      <button class="navItem on" data-c="all">全部</button>
+      <button class="navItem" data-c="activity">活动</button>
+      <button class="navItem" data-c="version">版本</button>
+    </nav>
+
+    <div class="sideSort">
+      <span class="sortLabel">排序</span>
+      <select class="sort" id="sort">
+        <option value="smart">智能排序</option>
+        <option value="due">截止最早</option>
+        <option value="pri">优先级高</option>
+        <option value="new">最新添加</option>
+      </select>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="prog">
+      <div class="row"><span>今日完成进度</span><b id="counter">0 / 0</b></div>
+      <div class="bar"><i id="bar"></i></div>
+    </div>
+
+    <div class="add">
+      <textarea id="inp" rows="1" placeholder="一行一个，回车添加（Shift+回车换行，逗号等不再拆分）" maxlength="2000"></textarea>
+      <button id="addBtn">添加</button>
+    </div>
+
+    <button class="moreToggle" id="moreToggle">更多选项（优先级/截止日/版本/活动/无需验证/是否活动/FT1/备注）⌄</button>
+    <div class="more" id="more">
+      <div class="moreRow">
+        <span class="lbl">优先级</span>
+        <div class="chips" id="priChips">
+          <button class="chip" data-v="高">高</button>
+          <button class="chip on" data-v="中">中</button>
+          <button class="chip" data-v="低">低</button>
+        </div>
+      </div>
+    <div class="moreRow">
+      <span class="lbl">截止日</span>
+      <input type="date" id="dueInp" />
+    </div>
+    <div class="moreRow">
+      <span class="lbl">执行人</span>
+      <input type="text" id="whoInp" maxlength="20" placeholder="谁来做（可留空）" style="border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);flex:1;min-width:0" />
+    </div>
+    <div class="moreRow">
+      <span class="lbl">版本</span>
+      <select id="verSel" style="flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink)">
+        <option value="__none__">无（不归入版本）</option>
+      </select>
+    </div>
+    <div class="moreRow" id="verNewRow" style="display:none">
+      <span class="lbl">新版本</span>
+      <input type="text" id="verNewInp" maxlength="40" placeholder="输入版本名称" style="border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);flex:1;min-width:0" />
+    </div>
+    <div class="moreRow">
+      <span class="lbl">活动</span>
+      <input type="text" id="actInp" maxlength="40" placeholder="活动名称（可留空）" style="border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);flex:1;min-width:0" />
+    </div>
+    <div class="moreRow">
+      <span class="lbl">无需验证</span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1">
+        <input type="checkbox" id="nvInp" /> 勾选后该任务置灰显示
+      </label>
+    </div>
+    <div class="moreRow">
+      <span class="lbl">是否活动</span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1">
+        <input type="checkbox" id="isActInp" /> 勾选后标记为「活动」任务
+      </label>
+    </div>
+    <div class="moreRow">
+      <span class="lbl">备注</span>
+      <textarea id="noteInp" rows="2" maxlength="500" placeholder="补充说明（可留空）" style="flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);resize:vertical;font-family:inherit;line-height:1.4"></textarea>
+    </div>
+  </div>
+
+    <div id="list"></div>
+    <div class="empty" id="empty" style="display:none">这里还空空的，添加第一条待办吧 🌟</div>
+
+    <div class="tip">
+      数据保存在本机浏览器（localStorage），不会上传。<br/>
+      添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
+      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；点「无需验证」标签可切换，选中后整行置灰显示。<br/>
+      侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
+      ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
+    </div>
+
+    <div class="backupBar">
+      <button id="expBtn" class="bbtn" title="把当前所有任务与版本下载成 JSON 文件">⬇ 导出备份</button>
+      <button id="impBtn" class="bbtn" title="从导出的 JSON 文件恢复任务与版本">⬆ 导入备份</button>
+      <input type="file" id="impFile" accept="application/json,.json" style="display:none" />
+      <span class="btip">换网址/设备后用「导入备份」可保留数据</span>
+    </div>
+  </main>
+
+</div>
+
+<script>
+  const KEY = "startpage_todos_v2";
+  const KEY_OLD = "startpage_todos_v1";
+  const KEY_V = "startpage_versions_v1";
+  const $ = s => document.querySelector(s);
+  let todos = load();
+  let versions = loadV();    // 版本：[{id,name,collapsed}]
+  let filter = "all";
+  let catFilter = "all";   // 侧栏分类筛选
+  let sortMode = "smart";
+  let selPri = "中";
+  let editingId = null;      // 正在编辑的任务 id
+  let editPri = "中";        // 编辑时的临时优先级
+  let editGid = "";          // 编辑时的临时版本
+  let editAct = "";          // 编辑时的临时活动
+  let editNv = false;        // 编辑时的临时"无需验证"
+  let editIsAct = false;     // 编辑时的临时"是否活动"
+  let editNote = "";         // 编辑时的临时备注
+  let editFt1 = false;       // 编辑时的临时"FT1 是否已完成测试"
+
+  const PRI_RANK = {高:0, 中:1, 低:2};
+
+  // 载入 v2；若 v2 为空但 v1 有数据，则自动迁移（补全新字段），避免升级丢数据
+  function load(){
+    try{
+      const cur = JSON.parse(localStorage.getItem(KEY));
+      if(Array.isArray(cur) && cur.length) return cur;
+    }catch(e){}
+    try{
+      const old = JSON.parse(localStorage.getItem(KEY_OLD));
+      if(Array.isArray(old) && old.length){
+        const migrated = old.map(t=>({
+          id: t.id || uid(),
+          text: t.text || "",
+          done: !!t.done,
+          ts: t.ts || Date.now(),
+          pri: t.pri || "中",
+          due: t.due || "",
+          who: t.who || "",
+          assigned: !!t.assigned,
+          gid: t.gid || "",
+          activity: t.activity || "",
+          noverify: !!t.noverify,
+          isAct: !!t.isAct,
+          note: t.note || "",
+          ft1Tested: !!t.ft1Tested
+        }));
+        localStorage.setItem(KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+    }catch(e){}
+    return [];
+  }
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify(todos));
+  }
+  function loadV(){
+    try{ const a = JSON.parse(localStorage.getItem(KEY_V)); if(Array.isArray(a)) return a; }catch(e){}
+    return [];
+  }
+  function saveV(){
+    localStorage.setItem(KEY_V, JSON.stringify(versions));
+  }
+  function createVersion(name){
+    const id = uid();
+    versions.push({ id, name:name||"未命名版本", collapsed:false });
+    saveV(); return id;
+  }
+  function deleteVersion(id){
+    versions = versions.filter(x=>x.id!==id);
+    todos.forEach(t=>{ if(t.gid===id) t.gid=""; });
+    saveV(); save();
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function todayStr(){
+    const d=new Date(), p=n=>String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
+  }
+  function isOverdue(t){ return t.due && !t.done && t.due < todayStr(); }
+
+  // 批量拆分：严格按"一行一个"切分（仅换行），逗号/分号/顿号等不再拆分，任务内文字原样保留
+  function splitTasks(raw){
+    return (raw||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>0);
+  }
+  function addTasks(raw, pri, due, who, gid, activity, noverify, isAct, note){
+    const items = splitTasks(raw);
+    if(!items.length) return;
+    const now = Date.now();
+    const w = (who||"").trim();
+    const act = (activity||"").trim();
+    const g = gid || "";
+    const nv = !!noverify;
+    const ia = !!isAct;
+    const nt = (note||"").trim();
+    items.forEach((text,i)=>{
+      // ts 递减，保证先写的项目排在最前；新任务默认未分配 → FT1 状态为「未测」
+      todos.unshift({ id:uid(), text, done:false, ts:now - i, pri, due:due||"", who:w, gid:g, activity:act, noverify:nv, isAct:ia, note:nt, ft1Tested:false });
+    });
+    save(); render();
+  }
+  function toggle(id){
+    const t = todos.find(x=>x.id===id); if(!t) return;
+    t.done = !t.done; save(); render();
+  }
+  function remove(id){
+    todos = todos.filter(x=>x.id!==id); save(); render();
+  }
+  function startEdit(id){ editingId = id; render(); }
+  function cancelEdit(){ editingId = null; render(); }
+  function saveEdit(id, text, due, who, gid, activity, noverify, isAct, note, ft1Tested){
+    const t = todos.find(x=>x.id===id); if(!t) return;
+    const v = (text||"").trim();
+    if(!v){ cancelEdit(); return; }
+    t.text = v; t.pri = editPri; t.due = due||""; t.who = (who||"").trim();
+    t.gid = gid || ""; t.activity = (activity||"").trim();
+    t.noverify = !!noverify; t.isAct = !!isAct; t.note = (note||"").trim();
+    t.ft1Tested = !!(t.isAct && ft1Tested);   // 仅活动类才记录 FT1 测试状态
+    editingId = null; save(); render();
+  }
+
+  // 构建行内编辑面板
+  function buildEditor(t){
+    editPri = t.pri; editGid = t.gid || ""; editAct = t.activity || ""; editNv = !!t.noverify; editIsAct = !!t.isAct; editNote = t.note || ""; editFt1 = !!t.ft1Tested;
+    const box = document.createElement("div");
+    box.className = "editBox"; box.style.flex = "1";
+
+    const ta = document.createElement("input");
+    ta.className = "editText"; ta.type = "text"; ta.value = t.text; ta.maxLength = 120;
+    ta.addEventListener("keydown", e=>{ if(e.key==="Enter") saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1); });
+    box.appendChild(ta);
+
+    const whoRow = document.createElement("div"); whoRow.className = "editRow";
+    const wlbl = document.createElement("span"); wlbl.className = "lbl"; wlbl.textContent = "执行人";
+    const wi = document.createElement("input"); wi.type = "text"; wi.value = t.who || ""; wi.maxLength = 20;
+    wi.style.cssText = "flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:#fff;color:var(--ink)";
+    whoRow.append(wlbl, wi); box.appendChild(whoRow);
+
+    const mkPriRow = (cur)=>{
+      const row = document.createElement("div"); row.className = "editRow";
+      const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "优先级";
+      const chips = document.createElement("div"); chips.className = "chips";
+      const opts = [["高","高"],["中","中"],["低","低"]];
+      opts.forEach(([v,txt])=>{
+        const b = document.createElement("button");
+        b.className = "chip" + (v===cur?" on":"");
+        b.textContent = txt; b.dataset.v = v;
+        b.onclick = ()=>{
+          chips.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+          b.classList.add("on"); editPri = v;
+        };
+        chips.appendChild(b);
+      });
+      row.append(lbl, chips);
+      return row;
+    };
+    box.appendChild(mkPriRow(t.pri));
+
+    const dueRow = document.createElement("div"); dueRow.className = "editRow";
+    const dlbl = document.createElement("span"); dlbl.className = "lbl"; dlbl.textContent = "截止日";
+    const di = document.createElement("input"); di.type = "date"; di.value = t.due || "";
+    dueRow.append(dlbl, di); box.appendChild(dueRow);
+
+    // 版本（移入/移出版本）
+    const verRow = document.createElement("div"); verRow.className = "editRow";
+    const vlbl = document.createElement("span"); vlbl.className = "lbl"; vlbl.textContent = "版本";
+    const vs = document.createElement("select"); vs.style.cssText = "flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:#fff;color:var(--ink)";
+    const oNone = document.createElement("option"); oNone.value=""; oNone.textContent="不归入版本"; vs.appendChild(oNone);
+    versions.forEach(v=>{ const o=document.createElement("option"); o.value=v.id; o.textContent=v.name; vs.appendChild(o); });
+    vs.value = editGid;
+    vs.onchange = ()=>{ editGid = vs.value; };
+    verRow.append(vlbl, vs); box.appendChild(verRow);
+
+    // 活动
+    const actRow = document.createElement("div"); actRow.className = "editRow";
+    const albl = document.createElement("span"); albl.className = "lbl"; albl.textContent = "活动";
+    const ai = document.createElement("input"); ai.type="text"; ai.value = editAct; ai.maxLength = 40; ai.placeholder="活动名称（可留空）";
+    ai.style.cssText = "flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:#fff;color:var(--ink)";
+    ai.oninput = ()=>{ editAct = ai.value; };
+    actRow.append(albl, ai); box.appendChild(actRow);
+
+    // 无需验证
+    const nvRow = document.createElement("div"); nvRow.className = "editRow";
+    const nlbl = document.createElement("span"); nlbl.className = "lbl"; nlbl.textContent = "无需验证";
+    const nlab = document.createElement("label"); nlab.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1";
+    const ncb = document.createElement("input"); ncb.type = "checkbox"; ncb.checked = editNv;
+    ncb.onchange = ()=>{ editNv = ncb.checked; };
+    const ntxt = document.createElement("span"); ntxt.textContent = "勾选后任务置灰显示";
+    nlab.append(ncb, ntxt); nvRow.append(nlbl, nlab); box.appendChild(nvRow);
+
+    // 是否活动
+    const iaRow = document.createElement("div"); iaRow.className = "editRow";
+    const ialbl = document.createElement("span"); ialbl.className = "lbl"; ialbl.textContent = "是否活动";
+    const ialab = document.createElement("label"); ialab.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1";
+    const iacb = document.createElement("input"); iacb.type = "checkbox"; iacb.checked = editIsAct;
+    const iatxt = document.createElement("span"); iatxt.textContent = "勾选后标记为「活动」任务";
+    ialab.append(iacb, iatxt); iaRow.append(ialbl, ialab); box.appendChild(iaRow);
+
+    // FT1 是否完成测试（仅活动类显示）
+    const ft1Row = document.createElement("div"); ft1Row.className = "editRow";
+    ft1Row.style.display = (editIsAct || t.assigned) ? "flex" : "none";
+    const f1lbl = document.createElement("span"); f1lbl.className = "lbl"; f1lbl.textContent = "FT1测试";
+    const f1lab = document.createElement("label"); f1lab.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1";
+    const f1cb = document.createElement("input"); f1cb.type = "checkbox"; f1cb.checked = editFt1;
+    f1cb.onchange = ()=>{ editFt1 = f1cb.checked; };
+    const f1txt = document.createElement("span"); f1txt.textContent = "勾选表示 FT1 已完成测试";
+    f1lab.append(f1cb, f1txt); ft1Row.append(f1lbl, f1lab); box.appendChild(ft1Row);
+    iacb.onchange = ()=>{ editIsAct = iacb.checked; ft1Row.style.display = (editIsAct || t.assigned) ? "flex" : "none"; };
+
+    // 备注
+    const noteRow = document.createElement("div"); noteRow.className = "editRow";
+    const ntlbl = document.createElement("span"); ntlbl.className = "lbl"; ntlbl.textContent = "备注";
+    const nta = document.createElement("textarea"); nta.value = editNote; nta.maxLength = 500; nta.rows = 2; nta.placeholder = "补充说明（可留空）";
+    nta.style.cssText = "flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:#fff;color:var(--ink);resize:vertical;font-family:inherit;line-height:1.4";
+    nta.oninput = ()=>{ editNote = nta.value; };
+    noteRow.append(ntlbl, nta); box.appendChild(noteRow);
+
+    const acts = document.createElement("div"); acts.className = "editActions";
+    const save = document.createElement("button"); save.className = "btnSave"; save.textContent = "保存";
+    save.onclick = ()=>saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1);
+    const cancel = document.createElement("button"); cancel.className = "btnCancel"; cancel.textContent = "取消";
+    cancel.onclick = ()=>cancelEdit();
+    acts.append(save, cancel); box.appendChild(acts);
+    return box;
+  }
+
+  // 列表内可直接编辑的执行人控件：点击变输入框，回车/失焦保存，Esc 取消
+  function makeWhoControl(t){
+    const el = document.createElement("span");
+    const paint = ()=>{
+      el.className = "pill who" + (t.who ? "" : " empty");
+      el.textContent = t.who ? "👤 " + t.who : "＋ 执行人";
+    };
+    paint();
+    el.style.cursor = "pointer";
+    el.title = "点击编辑执行人";
+    el.onclick = ()=>{
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.value = t.who || ""; inp.maxLength = 20;
+      inp.size = Math.max(4, (t.who||"").length + 1);
+      inp.style.cssText = "border:1px solid var(--accent);outline:none;font-size:11px;font-weight:700;line-height:1;background:#fff;color:var(--ink);border-radius:7px;padding:4px 6px;min-width:0;align-self:center";
+      el.replaceWith(inp);
+      inp.focus(); inp.select();
+      const commit = ()=>{ t.who = inp.value.trim(); save(); render(); };
+      inp.addEventListener("keydown", e=>{
+        if(e.key==="Enter"){ e.preventDefault(); commit(); }
+        else if(e.key==="Escape"){ paint(); inp.replaceWith(el); }
+      });
+      inp.addEventListener("blur", commit);
+    };
+    return el;
+  }
+
+  // 列表内可直接编辑的备注控件：小按钮，点击变文本框，Ctrl/Cmd+回车 或 失焦保存，Esc 取消
+  function makeNoteControl(t){
+    const el = document.createElement("span");
+    const paint = ()=>{
+      el.className = "pill " + (t.note ? "noteShow" : "noteAdd");
+      el.textContent = t.note ? "📝 备注" : "＋ 备注";
+      if(t.note) el.title = t.note;
+    };
+    paint();
+    el.style.cursor = "pointer";
+    el.onclick = ()=>{
+      const ta = document.createElement("textarea");
+      ta.className = "noteEdit"; ta.value = t.note || ""; ta.maxLength = 500; ta.rows = 2;
+      el.replaceWith(ta); ta.focus(); ta.select();
+      const commit = ()=>{ t.note = ta.value.trim(); save(); render(); };
+      ta.addEventListener("keydown", e=>{
+        if(e.key==="Enter" && (e.metaKey||e.ctrlKey)){ e.preventDefault(); commit(); }
+        else if(e.key==="Escape"){ paint(); ta.replaceWith(el); }
+      });
+      ta.addEventListener("blur", commit);
+    };
+    return el;
+  }
+
+  function sortView(arr){
+    const mode = sortMode;
+    const cmp = (x,y)=>{
+      if(mode==="new") return y.ts-x.ts;
+      if(mode==="due"){
+        if(x.due&&y.due) return x.due.localeCompare(y.due);
+        if(x.due) return -1; if(y.due) return 1; return y.ts-x.ts;
+      }
+      if(mode==="pri") return (PRI_RANK[x.pri]-PRI_RANK[y.pri]) || (y.ts-x.ts);
+      // smart
+      const ox=isOverdue(x)?1:0, oy=isOverdue(y)?1:0;
+      if(ox!==oy) return oy-ox;
+      if(PRI_RANK[x.pri]!==PRI_RANK[y.pri]) return PRI_RANK[x.pri]-PRI_RANK[y.pri];
+      if(x.due&&y.due) return x.due.localeCompare(y.due);
+      if(x.due) return -1; if(y.due) return 1;
+      return y.ts-x.ts;
+    };
+    // 已完成 或 无需验证 的任务沉底：先分两组，组内各自按所选排序，再拼接
+    const active = [], sunk = [];
+    arr.forEach(t=>{ (t.done || t.noverify ? sunk : active).push(t); });
+    return active.sort(cmp).concat(sunk.sort(cmp));
+  }
+
+  // 单条任务 → <li>（与现在一致；额外显示活动标签）
+  function buildTaskLi(t){
+    const li = document.createElement("li");
+    if(isOverdue(t) && t.id!==editingId) li.classList.add("over");
+    if(t.noverify && t.id!==editingId) li.classList.add("noverify");
+
+    if(t.id===editingId){
+      li.appendChild(buildEditor(t));
+      return li;
+    }
+
+    const chk = document.createElement("div");
+    chk.className = "chk" + (t.done?" done":"");
+    chk.onclick = ()=>toggle(t.id);
+    const body = document.createElement("div"); body.className="body";
+    const txt = document.createElement("div");
+    txt.className = "txt" + (t.done?" done":"");
+    txt.textContent = t.text;
+    const meta = document.createElement("div"); meta.className="meta";
+    const p = document.createElement("span");
+    p.className = "pill pri pri-"+t.pri; p.textContent = t.pri;
+    meta.appendChild(p);
+    if(t.due){
+      const d = document.createElement("span");
+      const over = isOverdue(t);
+      d.className = "pill due"+(over?" over":"");
+      d.textContent = (over?"⚠ 逾期 ":"📅 ")+t.due.slice(5);
+      meta.appendChild(d);
+    }
+    if(t.activity){
+      const a = document.createElement("span");
+      a.className = "pill act";
+      a.textContent = "🏷 " + t.activity;
+      meta.appendChild(a);
+    }
+    if(t.isAct){
+      const ia = document.createElement("span");
+      ia.className = "pill isAct" + (t.isAct ? " on" : "");
+      ia.textContent = "🎯 活动";
+      ia.title = "点击切换是否标记为活动任务";
+      ia.onclick = ()=>{ t.isAct = !t.isAct; save(); render(); };
+      meta.appendChild(ia);
+    }
+    // FT1 测试：始终显示的三态状态标签
+    //   未分配 → 「FT1未测」(点一下即开始：自动标记已分配)
+    //   已分配 + 未测 → 「FT1测试中」(蓝色)
+    //   已分配 + 已测 → 「✓ FT1 已测」(绿色，点一下回到测试中)
+    const f1 = document.createElement("span");
+    let f1cls = "pill ft1", f1txt;
+    if(!t.assigned){
+      f1cls += " unt";
+      f1txt = "FT1未测";
+    } else if(t.ft1Tested){
+      f1cls += " on";
+      f1txt = "✓ FT1 已测";
+    } else {
+      f1txt = "FT1测试中";
+    }
+    f1.className = f1cls;
+    f1.textContent = f1txt;
+    f1.title = t.assigned ? "点击切换 FT1 是否已完成测试" : "点击开始 FT1 测试（自动标记已分配）";
+    f1.onclick = ()=>{
+      if(!t.assigned){ t.assigned = true; }        // 未分配 → 点一下开始测试
+      else { t.ft1Tested = !t.ft1Tested; }          // 已分配 → 切换 测试中 / 已测
+      save(); render();
+    };
+    meta.appendChild(f1);
+    meta.appendChild(makeWhoControl(t));
+    const as = document.createElement("span");
+    as.className = "pill assign" + (t.assigned ? " on" : "");
+    as.textContent = t.assigned ? "已分配" : "分配";
+    as.title = "点击切换是否已分配";
+    as.onclick = ()=>{ t.assigned = !t.assigned; save(); render(); };
+    meta.appendChild(as);
+    const nv = document.createElement("span");
+    nv.className = "pill noverify" + (t.noverify ? " on" : "");
+    nv.textContent = t.noverify ? "✓ 无需验证" : "无需验证";
+    nv.title = "点击切换是否需要验证";
+    nv.onclick = ()=>{ t.noverify = !t.noverify; save(); render(); };
+    meta.appendChild(nv);
+    meta.appendChild(makeNoteControl(t));
+    body.append(txt, meta);
+    const editBtn = document.createElement("button");
+    editBtn.className = "editBtn"; editBtn.textContent = "✏️"; editBtn.title="编辑";
+    editBtn.onclick = ()=>startEdit(t.id);
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "🗑"; del.title="删除";
+    del.onclick = ()=>remove(t.id);
+    li.append(chk, body, editBtn, del);
+    return li;
+  }
+
+  // 版本块：标题栏（折叠/名称/数量/重命名/删除）+ 内部任务列表
+  function buildVerBlock(v, tasks){
+    const block = document.createElement("div"); block.className = "verBlock";
+    const head = document.createElement("div"); head.className = "verHead";
+    const caret = document.createElement("button"); caret.className = "verCaret";
+    caret.textContent = v.collapsed ? "▸" : "▾"; caret.title = "折叠/展开";
+    caret.onclick = ()=>{ v.collapsed = !v.collapsed; saveV(); render(); };
+    const name = document.createElement("span"); name.className = "verName";
+    name.textContent = "📦 " + v.name;
+    name.title = "点击重命名版本";
+    name.onclick = ()=>editVersionName(v, name);
+    const count = document.createElement("span"); count.className = "verCount";
+    count.textContent = tasks.length + " 项";
+    const vedit = document.createElement("button"); vedit.className = "verBtn"; vedit.textContent = "✏️"; vedit.title = "重命名版本";
+    vedit.onclick = ()=>editVersionName(v, name);
+    const vdel = document.createElement("button"); vdel.className = "verBtn"; vdel.textContent = "🗑"; vdel.title = "删除版本（任务移出列表，不删除）";
+    vdel.onclick = ()=>{ if(confirm("删除版本「"+v.name+"」？\n版本内的任务会移出到列表（不会被删除）。")) deleteVersion(v.id); };
+    head.append(caret, name, count, vedit, vdel);
+    block.appendChild(head);
+    if(!v.collapsed){
+      const ul = document.createElement("ul"); ul.className = "verTasks";
+      tasks.forEach(t=>ul.appendChild(buildTaskLi(t)));
+      block.appendChild(ul);
+    }
+    return block;
+  }
+
+  // 版本名称内联编辑
+  function editVersionName(v, nameEl){
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.value = v.name; inp.maxLength = 40;
+    inp.style.cssText = "border:1px solid var(--accent);outline:none;font-size:14px;font-weight:800;background:#fff;color:var(--ink);border-radius:8px;padding:3px 8px;min-width:120px;flex:1";
+    nameEl.replaceWith(inp); inp.focus(); inp.select();
+    const commit = ()=>{ const nv = inp.value.trim(); if(nv) v.name = nv; saveV(); render(); };
+    inp.addEventListener("keydown", e=>{
+      if(e.key==="Enter"){ e.preventDefault(); commit(); }
+      else if(e.key==="Escape"){ saveV(); render(); }
+    });
+    inp.addEventListener("blur", commit);
+  }
+
+  function render(){
+    const list = $("#list"); list.innerHTML = "";
+    const view = todos.filter(t =>
+      (filter==="all" ? true : filter==="done" ? t.done : !t.done)
+      && (catFilter==="all" ? true
+          : catFilter==="activity" ? !!t.isAct
+          : catFilter==="version" ? !!t.gid
+          : true)
+    );
+    let anyVisible = false;
+
+    // 版本块（含其任务），任务显示在版本内
+    versions.forEach(v=>{
+      const vTasks = sortView(view.filter(t=>t.gid===v.id));
+      if(!vTasks.length) return;        // 该版本无符合筛选的任务则跳过
+      anyVisible = true;
+      list.appendChild(buildVerBlock(v, vTasks));
+    });
+
+    // 未归入版本的任务
+    const ungrouped = sortView(view.filter(t=>!t.gid));
+    if(ungrouped.length){
+      const ul = document.createElement("ul"); ul.className = "plain";
+      ungrouped.forEach(t=>ul.appendChild(buildTaskLi(t)));
+      list.appendChild(ul);
+      anyVisible = true;
+    }
+
+    $("#empty").style.display = anyVisible ? "none" : "block";
+    const total = todos.length, done = todos.filter(t=>t.done).length;
+    $("#counter").textContent = done + " / " + total;
+    $("#bar").style.width = total ? (done/total*100)+"%" : "0%";
+  }
+
+  // 问候 + 日期
+  (function(){
+    const now = new Date();
+    const h = now.getHours();
+    const hi = h<6?"凌晨好 🌙":h<11?"早上好 ☀️":h<14?"中午好 🍱":h<18?"下午好 🌤":h<22?"晚上好 🌆":"夜深了 🌙";
+    $("#hi").textContent = hi;
+    const wd = ["周日","周一","周二","周三","周四","周五","周六"][now.getDay()];
+    $("#date").textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 · ${wd}`;
+  })();
+
+  // 事件
+  const ta = $("#inp");
+  function autoGrow(el){ el.style.height="auto"; el.style.height=Math.min(el.scrollHeight,160)+"px"; }
+  function doAdd(){
+    let gid = "";
+    const vs = $("#verSel").value;
+    if(vs === "__new__"){
+      const nv = $("#verNewInp").value.trim();
+      if(nv) gid = createVersion(nv);
+    } else if(vs && vs !== "__none__"){
+      gid = vs;
+    }
+    addTasks(ta.value, selPri, $("#dueInp").value, $("#whoInp").value, gid, $("#actInp").value, $("#nvInp").checked, $("#isActInp").checked, $("#noteInp").value);
+    ta.value=""; autoGrow(ta);
+    $("#verNewInp").value="";
+    $("#nvInp").checked = false;   // 重置，避免后续任务被误标记
+    $("#isActInp").checked = false; // 重置，避免后续任务被误标记
+    $("#noteInp").value = "";      // 重置，避免后续任务被误标记
+    refreshVerSel();
+    if(gid) $("#verSel").value = gid;
+    $("#verNewRow").style.display = "none";
+    ta.focus();
+  }
+  // 刷新版本下拉（保留当前选择；新建版本需先在面板里选"＋ 新建版本…"）
+  function refreshVerSel(){
+    const sel = $("#verSel"); if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = "";
+    const none = document.createElement("option"); none.value="__none__"; none.textContent="无（不归入版本）"; sel.appendChild(none);
+    versions.forEach(v=>{ const o=document.createElement("option"); o.value=v.id; o.textContent=v.name; sel.appendChild(o); });
+    const nw = document.createElement("option"); nw.value="__new__"; nw.textContent="＋ 新建版本…"; sel.appendChild(nw);
+    if(cur && [...sel.options].some(o=>o.value===cur)) sel.value = cur; else sel.value = "__none__";
+  }
+  $("#addBtn").onclick = doAdd;
+  ta.addEventListener("keydown", e=>{
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); doAdd(); }
+  });
+  ta.addEventListener("input", ()=>autoGrow(ta));
+  document.querySelectorAll(".navItem[data-f]").forEach(b=>{
+    b.onclick = ()=>{ filter=b.dataset.f; document.querySelectorAll(".navItem[data-f]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
+  });
+  document.querySelectorAll(".navItem[data-c]").forEach(b=>{
+    b.onclick = ()=>{ catFilter=b.dataset.c; document.querySelectorAll(".navItem[data-c]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
+  });
+  $("#sort").onchange = e=>{ sortMode=e.target.value; render(); };
+
+  // 分类 / 优先级 选择
+  function bindChips(boxId, onPick){
+    const box = $(boxId);
+    box.querySelectorAll(".chip").forEach(ch=>{
+      ch.onclick = ()=>{
+        box.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+        ch.classList.add("on"); onPick(ch.dataset.v);
+      };
+    });
+  }
+  bindChips("#priChips", v=>selPri=v);
+
+  // 更多选项折叠
+  $("#moreToggle").onclick = ()=>{
+    const m = $("#more"); const open = m.classList.toggle("open");
+    $("#moreToggle").textContent = open ? "收起选项 ⌃" : "更多选项（分类/优先级/截止日/版本/活动/无需验证/是否活动/FT1/备注）⌄";
+  };
+
+  // 版本下拉：选"新建版本"时显示新版本输入框
+  $("#verSel").onchange = ()=>{
+    const show = $("#verSel").value === "__new__";
+    $("#verNewRow").style.display = show ? "flex" : "none";
+    if(!show) $("#verNewInp").value = "";
+  };
+  // 是否活动：勾选时显式展开 FT1 测试行（仅活动类需要）
+  refreshVerSel();
+
+  // 备份：导出 / 导入（localStorage 按网址隔离，换网址/设备后可用导入保留数据）
+  function backupExport(){
+    const data = {
+      _app: "startpage",
+      _v: "r6.12",
+      todos: localStorage.getItem(KEY),
+      versions: localStorage.getItem(KEY_V)
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const d = new Date();
+    const p = n => String(n).padStart(2, "0");
+    a.download = `startpage-备份-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+    a.href = url; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function backupImport(file){
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const data = JSON.parse(r.result);
+        if(!data || !("todos" in data)){ alert("备份文件格式不正确，无法导入"); return; }
+        if(!confirm("导入将覆盖当前所有任务与版本，确定继续？\n（建议先点「导出备份」留一份底）")) return;
+        if(data.todos != null) localStorage.setItem(KEY, data.todos);
+        if(data.versions != null) localStorage.setItem(KEY_V, data.versions);
+        todos = load(); versions = loadV();
+        refreshVerSel(); render();
+      }catch(e){ alert("导入失败：" + e.message); }
+    };
+    r.readAsText(file);
+  }
+  $("#expBtn").onclick = backupExport;
+  $("#impBtn").onclick = ()=> $("#impFile").click();
+  $("#impFile").onchange = e=>{ if(e.target.files && e.target.files[0]) backupImport(e.target.files[0]); e.target.value = ""; };
+
+  render();
+</script>
+</body>
+</html>
