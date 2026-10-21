@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.18 · 2026-10-21 -->
+<!-- version: r6.19 · 2026-10-21 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -166,9 +166,15 @@
     display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow);
     border-left:4px solid var(--line);
   }
+  /* FT1 三态行颜色区分（放在 .over 之前，让逾期红条优先） */
+  li.ft1Wait{background:#fbfcfd;border-left-color:#d6dae1}
+  li.ft1Testing{background:#eef5ff;border-left-color:#3b82f6}
+  li.ft1Testing .txt{color:#1f3f7a;font-weight:700}
+  li.ft1Done{background:#f0faf5;border-left-color:var(--ok)}
   li.over{border-left-color:var(--p-high)}
   li.noverify{opacity:.55;filter:grayscale(.5);background:#fafbfc;border-left-color:#d6dae1}
   li.noverify:hover{opacity:.75}
+  li.noverify .txt{color:inherit;font-weight:inherit}
   .chk{
     width:24px;height:24px;flex:0 0 auto;margin-top:1px;border-radius:50%;border:2px solid var(--accent);
     cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;
@@ -375,7 +381,7 @@
     <div class="tip">
       数据保存在本机浏览器（localStorage），不会上传。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
-      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；点「无需验证」标签可切换，选中后整行置灰显示。<br/>
+      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -694,6 +700,10 @@
     const li = document.createElement("li");
     if(isOverdue(t) && t.id!==editingId) li.classList.add("over");
     if(t.noverify && t.id!==editingId) li.classList.add("noverify");
+    // FT1 三态行颜色：已测→绿底；已分配未测→蓝底（测试中）；未分配→浅灰底
+    if(t.ft1Tested) li.classList.add("ft1Done");
+    else if(t.assigned) li.classList.add("ft1Testing");
+    else li.classList.add("ft1Wait");
 
     if(t.id===editingId){
       li.appendChild(buildEditor(t));
