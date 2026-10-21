@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.14 · 2026-10-21 -->
+<!-- version: r6.15 · 2026-10-21 -->
 <style>
   :root{
     --accent:#ff8fb1;
@@ -136,23 +136,32 @@
   .navItem.on{background:#fff;color:var(--accent-d)}
   .sideSort{margin-top:18px}
   .sortLabel{font-size:11px;opacity:.8;display:block;margin:0 4px 6px;font-weight:700}
-  /* 侧栏验证 TIPS 面板（可编辑） */
-  .sideTips{
-    flex:1 1 100%;background:#fff;border-radius:14px;padding:10px 12px;color:var(--ink);
-    box-shadow:0 4px 14px rgba(0,0,0,.14);margin-top:2px;
+  /* 验证 TIPS 面板（右侧主区，可编辑） */
+  .tipsPanel{
+    display:none;background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-top:8px;
   }
-  .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-  .tipsHead h4{font-size:12px;margin:0;color:var(--accent-d)}
+  .main.tipsMode .tipsPanel{display:block}
+  /* 进入 TIPS 视图时，隐藏任务工作区各元素，只显示 TIPS 面板 */
+  .main.tipsMode .prog,
+  .main.tipsMode .add,
+  .main.tipsMode .moreToggle,
+  .main.tipsMode .more,
+  .main.tipsMode #list,
+  .main.tipsMode #empty,
+  .main.tipsMode .tip,
+  .main.tipsMode .backupBar{display:none !important}
+  .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .tipsHead h4{font-size:14px;margin:0;color:var(--accent-d)}
   .tipsAdd{border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent-d);font-weight:800;
-    width:22px;height:22px;border-radius:7px;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+    width:26px;height:26px;border-radius:8px;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
   .tipsAdd:active{background:var(--accent);color:#fff}
-  .tipsList{display:flex;flex-direction:column;gap:5px}
-  .tipRow{display:flex;align-items:center;gap:5px}
-  .tipRow input{flex:1;min-width:0;border:1px solid #eee;outline:none;font-size:11.5px;padding:4px 7px;border-radius:8px;color:var(--ink);font-family:inherit;background:#fff}
+  .tipsList{display:flex;flex-direction:column;gap:7px}
+  .tipRow{display:flex;align-items:center;gap:7px}
+  .tipRow input{flex:1;min-width:0;border:1px solid #eee;outline:none;font-size:13px;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff}
   .tipRow input:focus{border-color:var(--accent)}
-  .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:18px;height:18px;border-radius:6px;font-size:13px;flex:0 0 auto;line-height:1;padding:0}
+  .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:22px;height:22px;border-radius:7px;font-size:15px;flex:0 0 auto;line-height:1;padding:0}
   .tipDel:active{background:#f6d3dc}
-  .tipsHint{font-size:10.5px;color:#b3a9bb;margin-top:7px;text-align:center}
+  .tipsHint{font-size:11px;color:#b3a9bb;margin-top:9px;text-align:center}
   .sort{
     width:100%;border:none;outline:none;background:rgba(255,255,255,.92);color:var(--ink);
     font-size:13px;font-weight:700;padding:9px 10px;border-radius:12px;cursor:pointer;
@@ -289,14 +298,6 @@
       <button class="navItem" data-c="version">版本</button>
       <div class="navTitle">提示</div>
       <button class="navItem" id="tipsToggle">💡 验证TIPS</button>
-      <div class="sideTips" id="sideTips" style="display:none">
-        <div class="tipsHead">
-          <h4>验证流程小抄</h4>
-          <button class="tipsAdd" id="tipsAdd" title="添加一条提示">＋</button>
-        </div>
-        <div class="tipsList" id="tipsList"></div>
-        <div class="tipsHint">点文字直接改 · × 删除 · ＋ 新增</div>
-      </div>
     </nav>
 
     <div class="sideSort">
@@ -371,6 +372,15 @@
       <textarea id="noteInp" rows="2" maxlength="500" placeholder="补充说明（可留空）" style="flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);resize:vertical;font-family:inherit;line-height:1.4"></textarea>
     </div>
   </div>
+
+    <div class="tipsPanel" id="tipsPanel">
+      <div class="tipsHead">
+        <h4>验证流程小抄</h4>
+        <button class="tipsAdd" id="tipsAdd" title="添加一条提示">＋</button>
+      </div>
+      <div class="tipsList" id="tipsList"></div>
+      <div class="tipsHint">点文字直接改 · × 删除 · ＋ 新增</div>
+    </div>
 
     <div id="list"></div>
     <div class="empty" id="empty" style="display:none">这里还空空的，添加第一条待办吧 🌟</div>
@@ -915,13 +925,21 @@
   });
   $("#sort").onchange = e=>{ sortMode=e.target.value; render(); };
 
-  // 侧栏「验证TIPS」折叠面板
+  // 侧栏「验证TIPS」→ 点击后在右侧主区显示可编辑内容（不再在侧栏内联展开）
+  const mainEl = document.querySelector(".main");
   $("#tipsToggle").onclick = ()=>{
-    const box = $("#sideTips");
-    const open = box.style.display !== "none";
-    box.style.display = open ? "none" : "block";
-    $("#tipsToggle").classList.toggle("on", !open);
+    const on = mainEl.classList.toggle("tipsMode");
+    $("#tipsToggle").classList.toggle("on", on);
   };
+  // 点击清单/分类导航时退出 TIPS 视图，回到任务列表
+  document.querySelectorAll('.navItem[data-f], .navItem[data-c]').forEach(b=>{
+    b.addEventListener("click", ()=>{
+      if(mainEl.classList.contains("tipsMode")){
+        mainEl.classList.remove("tipsMode");
+        $("#tipsToggle").classList.remove("on");
+      }
+    });
+  });
 
   // 验证 TIPS 可编辑（存本机 localStorage，持久化 + 可随备份搬运）
   const TIPS_KEY = "startpage_tips_v1";
