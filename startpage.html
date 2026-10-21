@@ -4,42 +4,43 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.15 · 2026-10-21 -->
+<!-- version: r6.16 · 2026-10-21 -->
 <style>
   :root{
-    --accent:#ff8fb1;
-    --accent-d:#f06b97;
-    --accent-soft:#ffe3ee;
-    --accent-hover:#ffa7c4;
-    --bg1:#fff5fb;
-    --bg2:#eef4ff;
-    --ink:#3a2d3f;
-    --muted:#9b8aa3;
+    --accent:#3b82f6;
+    --accent-d:#2563eb;
+    --accent-soft:#e8f1ff;
+    --accent-hover:#6ea8ff;
+    --bg1:#f5f6f8;
+    --bg2:#eceef1;
+    --ink:#2d3340;
+    --muted:#8a93a3;
     --card:#ffffff;
-    --ok:#3ec78f;
-    --shadow:0 10px 30px rgba(180,140,170,.18);
-    /* 分类颜色 */
-    --c-work:#5b9cff; --c-work-s:#e8f1ff;
-    --c-life:#3ec78f; --c-life-s:#e4f8f0;
-    --c-study:#b07cff; --c-study-s:#f1e9ff;
-    --c-other:#b0a8b8; --c-other-s:#f1eef3;
+    --line:#e4e7ec;
+    --ok:#1f9d6b;
+    --shadow:0 1px 3px rgba(20,30,50,.06);
+    /* 分类颜色（浅色描边风格） */
+    --c-work:#5b9cff; --c-work-s:#eef4ff;
+    --c-life:#1f9d6b; --c-life-s:#ecf7f1;
+    --c-study:#9b6dff; --c-study-s:#f3eeff;
+    --c-other:#9aa1ad; --c-other-s:#f1f2f4;
     /* 优先级颜色 */
-    --p-high:#ff5b6e; --p-mid:#ffa53e; --p-low:#b0a8b8;
+    --p-high:#e5484d; --p-mid:#e8920c; --p-low:#9aa1ad;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,sans-serif;
     color:var(--ink);
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    background:var(--bg1);
     min-height:100vh;
     padding:18px 14px 40px;
   }
   .app{max-width:980px;margin:0 auto;display:flex;gap:18px;align-items:flex-start}
   .sidebar{
     flex:0 0 210px;position:sticky;top:18px;
-    background:linear-gradient(160deg,var(--accent),var(--accent-d));
-    color:#fff;border-radius:22px;padding:18px 14px;box-shadow:var(--shadow);
+    background:var(--card);color:var(--ink);
+    border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
   }
   .main{flex:1;min-width:0}
 
@@ -50,19 +51,11 @@
   .brand .hi{font-size:12px;opacity:.92;margin-top:2px}
   .brand .date{font-size:11px;opacity:.85;margin-top:2px}
 
-  /* 进度条 */
-  .prog{
-    background:var(--card);border-radius:18px;padding:14px 16px;margin-top:14px;box-shadow:var(--shadow);
-  }
-  .prog .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
-  .prog .row b{color:var(--ink)}
-  .bar{height:10px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
-  .bar>i{display:block;height:100%;width:0;border-radius:99px;
-    background:linear-gradient(90deg,var(--ok),#7be0b4);transition:width .35s ease}
+  /* 进度条（已移除分数展示，样式保留为空以防误用） */
 
   /* 添加栏 */
   .add{
-    display:flex;gap:8px;margin-top:14px;background:var(--card);padding:10px;border-radius:18px;box-shadow:var(--shadow);
+    display:flex;gap:8px;margin-top:14px;background:var(--card);padding:10px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
   }
   .add textarea{
     flex:1;border:none;outline:none;font-size:15px;padding:10px 12px;border-radius:12px;background:var(--bg1);color:var(--ink);
@@ -82,7 +75,7 @@
   }
   .moreToggle:active{color:var(--accent-d)}
   .more{
-    background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+    background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
     padding:0 14px;margin-top:6px;max-height:0;overflow:hidden;transition:max-height .25s ease,padding .25s ease;
   }
   .more.open{max-height:560px;padding:12px 14px}
@@ -127,22 +120,21 @@
 
   /* 侧栏导航 */
   .nav{display:flex;flex-direction:column;gap:6px}
-  .navTitle{font-size:11px;opacity:.8;margin:14px 4px 2px;font-weight:700;letter-spacing:.5px}
+  .navTitle{font-size:11px;color:var(--muted);margin:14px 4px 2px;font-weight:700;letter-spacing:.5px}
   .navItem{
-    border:none;cursor:pointer;text-align:left;font-size:14px;font-weight:700;
-    padding:9px 12px;border-radius:12px;color:#fff;background:rgba(255,255,255,.16);transition:all .15s ease;
+    border:1px solid transparent;cursor:pointer;text-align:left;font-size:14px;font-weight:700;
+    padding:9px 12px;border-radius:10px;color:var(--ink);background:var(--bg1);transition:all .15s ease;
   }
-  .navItem:hover{background:rgba(255,255,255,.28)}
-  .navItem.on{background:#fff;color:var(--accent-d)}
+  .navItem:hover{background:var(--bg2)}
+  .navItem.on{background:var(--accent-soft);color:var(--accent-d);border-color:var(--accent-hover)}
   .sideSort{margin-top:18px}
-  .sortLabel{font-size:11px;opacity:.8;display:block;margin:0 4px 6px;font-weight:700}
+  .sortLabel{font-size:11px;color:var(--muted);display:block;margin:0 4px 6px;font-weight:700}
   /* 验证 TIPS 面板（右侧主区，可编辑） */
   .tipsPanel{
-    display:none;background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-top:8px;
+    display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-top:8px;
   }
   .main.tipsMode .tipsPanel{display:block}
   /* 进入 TIPS 视图时，隐藏任务工作区各元素，只显示 TIPS 面板 */
-  .main.tipsMode .prog,
   .main.tipsMode .add,
   .main.tipsMode .moreToggle,
   .main.tipsMode .more,
@@ -163,20 +155,20 @@
   .tipDel:active{background:#f6d3dc}
   .tipsHint{font-size:11px;color:#b3a9bb;margin-top:9px;text-align:center}
   .sort{
-    width:100%;border:none;outline:none;background:rgba(255,255,255,.92);color:var(--ink);
-    font-size:13px;font-weight:700;padding:9px 10px;border-radius:12px;cursor:pointer;
+    width:100%;border:1px solid var(--line);outline:none;background:var(--card);color:var(--ink);
+    font-size:13px;font-weight:700;padding:9px 10px;border-radius:10px;cursor:pointer;
   }
 
   /* 列表 */
   ul{list-style:none;margin:8px 0 0;padding:0}
   li{
-    background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;
     display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow);
-    border-left:5px solid transparent;
+    border-left:4px solid var(--line);
   }
   li.over{border-left-color:var(--p-high)}
-  li.noverify{opacity:.5;filter:grayscale(.5);background:#faf8fb;border-left-color:#cfc6d6}
-  li.noverify:hover{opacity:.72}
+  li.noverify{opacity:.55;filter:grayscale(.5);background:#fafbfc;border-left-color:#d6dae1}
+  li.noverify:hover{opacity:.75}
   .chk{
     width:24px;height:24px;flex:0 0 auto;margin-top:1px;border-radius:50%;border:2px solid var(--accent);
     cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;
@@ -312,11 +304,6 @@
   </aside>
 
   <main class="main">
-
-    <div class="prog">
-      <div class="row"><span>今日完成进度</span><b id="counter">0 / 0</b></div>
-      <div class="bar"><i id="bar"></i></div>
-    </div>
 
     <div class="add">
       <textarea id="inp" rows="1" placeholder="一行一个，回车添加（Shift+回车换行，逗号等不再拆分）" maxlength="2000"></textarea>
@@ -864,9 +851,6 @@
     }
 
     $("#empty").style.display = anyVisible ? "none" : "block";
-    const total = todos.length, done = todos.filter(t=>t.done).length;
-    $("#counter").textContent = done + " / " + total;
-    $("#bar").style.width = total ? (done/total*100)+"%" : "0%";
   }
 
   // 问候 + 日期
