@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.17 · 2026-10-21 -->
+<!-- version: r6.18 · 2026-10-21 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -149,7 +149,7 @@
   .tipsAdd:active{background:var(--accent);color:#fff}
   .tipsList{display:flex;flex-direction:column;gap:7px}
   .tipRow{display:flex;align-items:flex-start;gap:7px}
-  .tipRow textarea{flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;line-height:1.55;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff;resize:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
+  .tipRow textarea{flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;line-height:1.55;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff;resize:vertical;white-space:pre-wrap;word-break:break-word;min-height:38px;display:block;box-sizing:border-box}
   .tipRow textarea:focus{border-color:var(--accent)}
   .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:22px;height:22px;border-radius:7px;font-size:15px;flex:0 0 auto;line-height:1;padding:0}
   .tipDel:active{background:#f6d3dc}
@@ -914,6 +914,7 @@
   $("#tipsToggle").onclick = ()=>{
     const on = mainEl.classList.toggle("tipsMode");
     $("#tipsToggle").classList.toggle("on", on);
+    if(on) requestAnimationFrame(growAllTips);   // 面板由隐藏变可见后，按真实宽度重算高度
   };
   // 点击清单/分类导航时退出 TIPS 视图，回到任务列表
   document.querySelectorAll('.navItem[data-f], .navItem[data-c]').forEach(b=>{
@@ -940,20 +941,45 @@
     return DEFAULT_TIPS.slice();
   }
   function saveTips(){ localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); }
+  // 自适应高度：仅在元素可见时按 scrollHeight 计算；隐藏时按换行数给 rows 兜底，避免高度算出 0 把文字裁掉
+  function autoGrowTip(el){
+    const minH = 38, maxH = 200;
+    if(!el.offsetParent || !el.scrollHeight){   // 隐藏或折叠中：按显式换行数兜底
+      const lines = (el.value || "").split("\n").length;
+      el.rows = Math.min(Math.max(lines, 1), 8);
+      el.style.height = "";
+      return;
+    }
+    el.style.overflowY = "auto";                // 测量与显示保持同一状态，避免滚动条出现导致重新折行
+    el.rows = 1;
+    el.style.height = "auto";
+    let target = el.scrollHeight;
+    for(let k=0; k<3; k++){                     // 收敛：宽度变化可能多折一行，逐次补高
+      el.style.height = Math.min(Math.max(target, minH), maxH) + "px";
+      const need = el.scrollHeight;
+      if(need <= target || el.clientHeight >= maxH) break;
+      target = need;
+    }
+  }
+  function growAllTips(){
+    document.querySelectorAll("#tipsList textarea").forEach(autoGrowTip);
+  }
   function renderTips(){
     const list = $("#tipsList"); list.innerHTML = "";
     tips.forEach((t,i)=>{
       const row = document.createElement("div"); row.className = "tipRow";
-      const inp = document.createElement("textarea"); inp.value = t; inp.rows = 1; inp.maxLength = 500;
-      inp.placeholder = "输入一条提示（可换行）…"; inp.style.height = "auto";
-      inp.style.height = Math.min(inp.scrollHeight, 160) + "px";
-      inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); inp.style.height = "auto"; inp.style.height = Math.min(inp.scrollHeight, 160) + "px"; };
+      const inp = document.createElement("textarea"); inp.value = t; inp.maxLength = 500;
+      inp.placeholder = "输入一条提示（可换行）…";
+      inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); autoGrowTip(inp); };
       const del = document.createElement("button"); del.className = "tipDel"; del.textContent = "×"; del.title = "删除";
       del.onclick = ()=>{ tips.splice(i,1); saveTips(); renderTips(); };
       row.append(inp, del); list.appendChild(row);
     });
+    growAllTips();
+    requestAnimationFrame(growAllTips);   // 面板刚显示时再算一次真实高度
   }
   renderTips();
+  window.addEventListener("resize", ()=>{ if(mainEl.classList.contains("tipsMode")) growAllTips(); });
   $("#tipsAdd").onclick = ()=>{
     tips.push(""); saveTips(); renderTips();
     const inputs = $("#tipsList").querySelectorAll("textarea");
