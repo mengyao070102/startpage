@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.33 · 2026-10-22 -->
+<!-- version: r6.34 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -180,8 +180,6 @@
     padding:4px 9px;border-radius:9px;cursor:pointer;text-align:left;
   }
   .linkAdd:hover{background:#fff;color:var(--accent-d);border-color:var(--accent)}
-  .sideSort{margin-top:10px}
-  .sortLabel{font-size:10.5px;color:var(--muted);display:block;margin:0 4px 3px;font-weight:700}
   /* 验证 TIPS 面板（右侧主区，可编辑） */
   .tipsPanel{
     display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-top:8px;
@@ -233,10 +231,6 @@
   .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:18px;height:18px;border-radius:6px;font-size:12px;flex:0 0 auto;line-height:1;padding:0}
   .tipDel:active{background:#f6d3dc}
   .tipsHint{font-size:11px;color:#b3a9bb;margin-top:9px;text-align:center}
-  .sort{
-    width:100%;border:1px solid var(--line);outline:none;background:var(--card);color:var(--ink);
-    font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:9px;cursor:pointer;
-  }
 
   /* 列表 */
   ul{list-style:none;margin:8px 0 0;padding:0}
@@ -347,7 +341,6 @@
     .nav{flex-direction:row;flex-wrap:wrap;gap:6px;flex:1 1 100%}
     .navTitle{flex:1 1 100%;margin:6px 4px 0}
     .navItem{flex:1 1 auto;text-align:center}
-    .sideSort{flex:1 1 100%;margin-top:6px}
   }
   /* 顶部吸附区：搜索 + 添加栏随页面滚动固定在顶部 */
   .stickyTop{
@@ -434,16 +427,6 @@
       <div class="navTitle">提示</div>
       <button class="navItem" id="tipsToggle">💡 验证TIPS</button>
     </nav>
-
-    <div class="sideSort">
-      <span class="sortLabel">排序</span>
-      <select class="sort" id="sort">
-        <option value="smart">智能排序</option>
-        <option value="due">截止最早</option>
-        <option value="pri">优先级高</option>
-        <option value="new">最新添加</option>
-      </select>
-    </div>
   </aside>
 
   <main class="main">
@@ -577,7 +560,6 @@
   let versions = loadV();    // 版本：[{id,name,collapsed}]
   let filter = "all";
   let catFilter = "all";   // 侧栏分类筛选
-  let sortMode = "smart";
   let selPri = "中";
   let editingId = null;      // 正在编辑的任务 id
   let editPri = "中";        // 编辑时的临时优先级
@@ -866,16 +848,9 @@
     return el;
   }
 
+  // 固定「智能排序」：逾期优先 → 优先级 → 截止日 → 最新添加
   function sortView(arr){
-    const mode = sortMode;
     const cmp = (x,y)=>{
-      if(mode==="new") return y.ts-x.ts;
-      if(mode==="due"){
-        if(x.due&&y.due) return x.due.localeCompare(y.due);
-        if(x.due) return -1; if(y.due) return 1; return y.ts-x.ts;
-      }
-      if(mode==="pri") return (PRI_RANK[x.pri]-PRI_RANK[y.pri]) || (y.ts-x.ts);
-      // smart
       const ox=isOverdue(x)?1:0, oy=isOverdue(y)?1:0;
       if(ox!==oy) return oy-ox;
       if(PRI_RANK[x.pri]!==PRI_RANK[y.pri]) return PRI_RANK[x.pri]-PRI_RANK[y.pri];
@@ -883,7 +858,7 @@
       if(x.due) return -1; if(y.due) return 1;
       return y.ts-x.ts;
     };
-    // 已完成 或 无需验证 的任务沉底：先分两组，组内各自按所选排序，再拼接
+    // 已完成 或 无需验证 的任务沉底：先分两组，组内各自排序，再拼接
     const active = [], sunk = [];
     arr.forEach(t=>{ (t.done || t.noverify ? sunk : active).push(t); });
     return active.sort(cmp).concat(sunk.sort(cmp));
@@ -1183,7 +1158,6 @@
   document.querySelectorAll(".navItem[data-c]").forEach(b=>{
     b.onclick = ()=>{ catFilter=b.dataset.c; document.querySelectorAll(".navItem[data-c]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
   });
-  $("#sort").onchange = e=>{ sortMode=e.target.value; render(); };
 
   // 顶部吸附：滚动后加阴影，明确"浮在上面"的层级
   (function stickyShadow(){
