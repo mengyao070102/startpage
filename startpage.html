@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.39 · 2026-10-22 -->
+<!-- version: r6.40 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -293,7 +293,7 @@
     display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow);
     border-left:4px solid var(--line);
   }
-  /* 测试用例三态行颜色区分（放在 .over 之前，让逾期红条优先） */
+  /* 状态三态行颜色区分（活动类 FT1 / 版本需求 测试用例 共用；放在 .over 之前，让逾期红条优先） */
   li.ft1Wait{background:#fbfcfd;border-left-color:#d6dae1}
   li.ft1Testing{background:#eef5ff;border-left-color:#3b82f6}
   li.ft1Testing .txt{color:#1f3f7a;font-weight:700}
@@ -502,7 +502,7 @@
       </div>
     </div>
 
-    <button class="moreToggle" id="moreToggle">更多选项（优先级/截止日/版本/活动/无需验证/是否活动/测试用例/备注）⌄</button>
+    <button class="moreToggle" id="moreToggle">更多选项（优先级/截止日/版本/活动/无需验证/是否活动/状态/备注）⌄</button>
     <div class="more" id="more">
       <div class="moreRow">
         <span class="lbl">优先级</span>
@@ -598,7 +598,7 @@
       数据保存在本机浏览器（localStorage），不会上传。<br/>
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
-      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / 测试用例 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带<b>测试用例三态</b>标签：灰色「测试用例未分配」（点一下即分配，自动标记已分配）→ 蓝色「测试用例编写中」→ 点它变绿色「✓ 测试用例已完成」（再点回编写中）；<b>整行底色同步区分</b>：未分配=浅灰底、编写中=<b>蓝底</b>（标题加粗）、已完成=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
+      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / 测试用例 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带状态三态标签，<b>按类型显示不同文案</b>：<b>版本需求</b>显示灰色「测试用例未分配」（点一下即分配）→ 蓝色「测试用例编写中」→ 绿色「✓ 测试用例已完成」；<b>活动类任务</b>显示灰色「FT1未测」→ 蓝色「FT1测试中」→ 绿色「✓ FT1 已测」；点标签即可逐级流转，<b>整行底色同步区分</b>：未开始=浅灰底、进行中=<b>蓝底</b>（标题加粗）、已完成=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -637,7 +637,7 @@
   let editNv = false;        // 编辑时的临时"无需验证"
   let editIsAct = false;     // 编辑时的临时"是否活动"
   let editNote = "";         // 编辑时的临时备注
-  let editFt1 = false;       // 编辑时的临时"测试用例是否已完成"
+  let editFt1 = false;       // 编辑时的临时"状态是否已完成"（版本需求=测试用例，活动类=FT1）
 
   const PRI_RANK = {高:0, 中:1, 低:2};
 
@@ -714,7 +714,7 @@
     const ia = !!isAct;
     const nt = (note||"").trim();
     items.forEach((text,i)=>{
-      // ts 递减，保证先写的项目排在最前；新任务默认未分配 → 测试用例状态为「未分配」
+      // ts 递减，保证先写的项目排在最前；新任务默认未分配 → 状态为「未分配 / 未测」
       todos.unshift({ id:uid(), text, done:false, ts:now - i, pri, due:due||"", who:w, gid:g, activity:act, noverify:nv, isAct:ia, note:nt, ft1Tested:false });
     });
     save(); render();
@@ -757,7 +757,7 @@
     t.text = v; t.pri = editPri; t.due = due||""; t.who = (who||"").trim();
     t.gid = gid || ""; t.activity = (activity||"").trim();
     t.noverify = !!noverify; t.isAct = !!isAct; t.note = (note||"").trim();
-    t.ft1Tested = !!ft1Tested;   // 测试用例状态适用于所有任务（已分配或活动类都可标记）
+    t.ft1Tested = !!ft1Tested;   // 状态适用于所有任务（版本需求=测试用例，活动类=FT1）
     editingId = null; save(); render();
   }
 
@@ -810,8 +810,7 @@
     const oNone = document.createElement("option"); oNone.value=""; oNone.textContent="不归入版本"; vs.appendChild(oNone);
     versions.forEach(v=>{ const o=document.createElement("option"); o.value=v.id; o.textContent=v.name; vs.appendChild(o); });
     vs.value = editGid;
-    vs.onchange = ()=>{ editGid = vs.value; };
-    verRow.append(vlbl, vs); box.appendChild(verRow);
+    verRow.append(vlbl, vs); box.appendChild(verRow);   // onchange 在下方 syncStateRow 里统一绑定
 
     // 活动
     const actRow = document.createElement("div"); actRow.className = "editRow";
@@ -838,16 +837,24 @@
     const iatxt = document.createElement("span"); iatxt.textContent = "勾选后标记为「活动」任务";
     ialab.append(iacb, iatxt); iaRow.append(ialbl, ialab); box.appendChild(iaRow);
 
-    // 测试用例是否已完成（仅活动类或已分配时显示）
+    // 状态：活动类 = FT1 测试；版本需求（含未分组）= 测试用例
     const ft1Row = document.createElement("div"); ft1Row.className = "editRow";
-    ft1Row.style.display = (editIsAct || t.assigned) ? "flex" : "none";
     const f1lbl = document.createElement("span"); f1lbl.className = "lbl"; f1lbl.textContent = "测试用例";
     const f1lab = document.createElement("label"); f1lab.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer;flex:1";
     const f1cb = document.createElement("input"); f1cb.type = "checkbox"; f1cb.checked = editFt1;
     f1cb.onchange = ()=>{ editFt1 = f1cb.checked; };
     const f1txt = document.createElement("span"); f1txt.textContent = "勾选表示测试用例已完成";
     f1lab.append(f1cb, f1txt); ft1Row.append(f1lbl, f1lab); box.appendChild(ft1Row);
-    iacb.onchange = ()=>{ editIsAct = iacb.checked; ft1Row.style.display = (editIsAct || t.assigned) ? "flex" : "none"; };
+    // 勾了「是否活动」→ 这行走 FT1 语义；否则走测试用例语义
+    function syncStateRow(){
+      const act = editIsAct;
+      f1lbl.textContent = act ? "FT1测试" : "测试用例";
+      f1txt.textContent = act ? "勾选表示 FT1 已完成测试" : "勾选表示测试用例已完成";
+      ft1Row.style.display = (act || t.assigned || !!editGid) ? "flex" : "none";
+    }
+    syncStateRow();
+    iacb.onchange = ()=>{ editIsAct = iacb.checked; syncStateRow(); };
+    vs.onchange   = ()=>{ editGid = vs.value;        syncStateRow(); };
 
     // 备注
     const noteRow = document.createElement("div"); noteRow.className = "editRow";
@@ -933,12 +940,32 @@
     return active.sort(cmp).concat(sunk.sort(cmp));
   }
 
+  // ── 状态标签语义分流（共用 assigned / ft1Tested 两个字段与同一套配色，只换文案）──
+  //   活动类任务（isAct）      → FT1 三态：FT1未测 / FT1测试中 / ✓ FT1 已测
+  //   版本需求（含未分组任务）  → 测试用例三态：测试用例未分配 / 测试用例编写中 / ✓ 测试用例已完成
+  function isFt1Scope(t){ return !!t.isAct; }
+  function stateLabel(t){
+    if(isFt1Scope(t)){
+      if(!t.assigned)  return {cls:" unt", txt:"FT1未测"};
+      if(t.ft1Tested)  return {cls:" on",  txt:"✓ FT1 已测"};
+      return {cls:"", txt:"FT1测试中"};
+    }
+    if(!t.assigned)    return {cls:" unt", txt:"测试用例未分配"};
+    if(t.ft1Tested)    return {cls:" on",  txt:"✓ 测试用例已完成"};
+    return {cls:"", txt:"测试用例编写中"};
+  }
+  function stateTip(t){
+    if(isFt1Scope(t))
+      return t.assigned ? "点击切换 FT1「测试中 / 已测」" : "点击开始 FT1 测试（自动标记已分配）";
+    return t.assigned ? "点击切换测试用例「编写中 / 已完成」" : "点击分配测试用例（自动标记已分配，进入编写中）";
+  }
+
   // 单条任务 → <li>（与现在一致；额外显示活动标签）
   function buildTaskLi(t){
     const li = document.createElement("li");
     if(isOverdue(t) && t.id!==editingId) li.classList.add("over");
     if(t.noverify && t.id!==editingId) li.classList.add("noverify");
-    // 测试用例三态行颜色：已完成→绿底；已分配未完成→蓝底（编写中）；未分配→浅灰底
+    // 状态三态行颜色（活动类 FT1 / 版本需求 测试用例 共用）：已完成→绿底；进行中→蓝底；未开始→浅灰底
     if(t.ft1Tested) li.classList.add("ft1Done");
     else if(t.assigned) li.classList.add("ft1Testing");
     else li.classList.add("ft1Wait");
@@ -980,27 +1007,17 @@
       ia.onclick = ()=>{ t.isAct = !t.isAct; save(); render(); };
       meta.appendChild(ia);
     }
-    // 测试用例三态：始终显示的状态标签（内部沿用 ft1Tested 字段，数据兼容）
-    //   未分配           → 「测试用例未分配」(灰色，点一下即分配，进入编写中)
-    //   已分配 + 未编写完 → 「测试用例编写中」(蓝色)
-    //   已分配 + 已完成   → 「✓ 测试用例已完成」(绿色，点一下回到编写中)
+    // 状态三态标签：始终显示，点击流转（内部沿用 ft1Tested 字段，数据兼容）
+    //   版本需求：测试用例未分配(灰) → 测试用例编写中(蓝) → ✓ 测试用例已完成(绿)
+    //   活动类  ：FT1未测(灰)        → FT1测试中(蓝)      → ✓ FT1 已测(绿)
     const f1 = document.createElement("span");
-    let f1cls = "pill ft1", f1txt;
-    if(!t.assigned){
-      f1cls += " unt";
-      f1txt = "测试用例未分配";
-    } else if(t.ft1Tested){
-      f1cls += " on";
-      f1txt = "✓ 测试用例已完成";
-    } else {
-      f1txt = "测试用例编写中";
-    }
-    f1.className = f1cls;
-    f1.textContent = f1txt;
-    f1.title = t.assigned ? "点击切换测试用例「编写中 / 已完成」" : "点击分配测试用例（自动标记已分配，进入编写中）";
+    const st = stateLabel(t);
+    f1.className = "pill ft1" + st.cls;
+    f1.textContent = st.txt;
+    f1.title = stateTip(t);
     f1.onclick = ()=>{
-      if(!t.assigned){ t.assigned = true; }        // 未分配 → 点一下开始测试
-      else { t.ft1Tested = !t.ft1Tested; }          // 已分配 → 切换 测试中 / 已测
+      if(!t.assigned){ t.assigned = true; }        // 未分配 → 点一下开始（自动标记已分配）
+      else { t.ft1Tested = !t.ft1Tested; }          // 已分配 → 切换 进行中 / 已完成
       save(); render();
     };
     meta.appendChild(f1);
@@ -1470,8 +1487,9 @@
   const TIPS_KEY = "startpage_tips_v1";
   const DEFAULT_TIPS = [
     "无需验证：勾选后任务整行置灰，视为跳过验证。",
-    "已分配：点「分配」后自动进入测试用例流程，显示「测试用例编写中」。",
-    "测试用例三态：未分配→测试用例未分配；已分配→测试用例编写中；点一下→✓ 测试用例已完成。",
+    "已分配：点「分配」后自动进入编写/测试流程，状态标签变蓝。",
+    "版本需求：状态标签走「测试用例未分配 → 测试用例编写中 → ✓ 测试用例已完成」。",
+    "活动类任务：状态标签保持「FT1未测 → FT1测试中 → ✓ FT1 已测」。",
     "是否活动：标记后侧栏「活动」筛选会列出该任务。",
     "数据存本机，换网址用底部「导出/导入备份」搬运。"
   ];
@@ -1566,7 +1584,7 @@
   // 更多选项折叠
   $("#moreToggle").onclick = ()=>{
     const m = $("#more"); const open = m.classList.toggle("open");
-    $("#moreToggle").textContent = open ? "收起选项 ⌃" : "更多选项（分类/优先级/截止日/版本/活动/无需验证/是否活动/测试用例/备注）⌄";
+    $("#moreToggle").textContent = open ? "收起选项 ⌃" : "更多选项（分类/优先级/截止日/版本/活动/无需验证/是否活动/状态/备注）⌄";
   };
 
   // 版本下拉：选"新建版本"时显示新版本输入框
@@ -1575,7 +1593,7 @@
     $("#verNewRow").style.display = show ? "flex" : "none";
     if(!show) $("#verNewInp").value = "";
   };
-  // 是否活动：勾选时显式展开「测试用例」行（仅活动类需要）
+  // 是否活动：勾选时切换状态行语义（FT1 / 测试用例）
   refreshVerSel();
 
   // 备份：导出 / 导入（localStorage 按网址隔离，换网址/设备后可用导入保留数据）
