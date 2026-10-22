@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.29 · 2026-10-22 -->
+<!-- version: r6.30 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -1225,6 +1225,23 @@
     }
     apply(pinned);
     if(btn) btn.onclick = ()=>{ pinned = !pinned; apply(pinned); };
+  })();
+
+  // 侧栏滚轮隔离：鼠标在侧栏上滚动时，绝不带动右侧列表（即使侧栏内容没超高也吞掉滚动）
+  (function sidebarWheelIsolate(){
+    const sb = document.querySelector(".sidebar");
+    if(!sb) return;
+    sb.addEventListener("wheel", e=>{
+      if(sb.classList.contains("follow")) return;                     // 跟随模式下不干预
+      if(!window.matchMedia("(min-width:721px)").matches) return;      // 移动端侧栏在顶部，不拦截
+      const can = sb.scrollHeight > sb.clientHeight + 1;
+      if(can){
+        const atTop = sb.scrollTop <= 0;
+        const atBottom = sb.scrollTop + sb.clientHeight >= sb.scrollHeight - 1;
+        if(e.deltaY > 0 ? !atBottom : !atTop) return;                  // 侧栏自己能滚 → 交给它
+      }
+      e.preventDefault();                                              // 否则吞掉，避免滚动传给页面
+    }, { passive:false });
   })();
 
   // 侧栏「链接直达」：可增删改，点击新标签打开
