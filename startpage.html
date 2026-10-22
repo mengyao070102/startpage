@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.23 · 2026-10-22 -->
+<!-- version: r6.24 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -456,7 +456,7 @@
           <input type="number" id="calcPrice" min="0" step="0.01" placeholder="输入折后价，自动计算" />
           <button class="calcClear" id="calcClear" title="清空">×</button>
         </div>
-        <div class="calcFormula">BV = 折后价 × 0.9　　PV = BV ÷ 12.5（四舍五入）</div>
+        <div class="calcFormula">BV = 折后价 × 0.9　　PV = BV ÷ 12.5（保留两位小数）</div>
         <div class="calcOut">
           <div class="calcItem"><span>BV</span><b id="calcBv">—</b></div>
           <div class="calcItem alt"><span>PV</span><b id="calcPv">—</b></div>
@@ -1214,7 +1214,7 @@
     if(inputs.length) inputs[inputs.length-1].focus();
   };
 
-  // BV / PV 计算：BV = 折后价 × 0.9；PV = BV ÷ 12.5（四舍五入）
+  // BV / PV 计算：BV = 折后价 × 0.9；PV = BV ÷ 12.5（保留两位小数，不取整）
   const CALC_KEY = "startpage_calc_v1";
   function calcUpdate(){
     const raw = $("#calcPrice").value;
@@ -1225,9 +1225,9 @@
       return;
     }
     const bv = p * 0.9;
-    const pv = Math.round(bv / 12.5);
+    const pv = bv / 12.5;
     $("#calcBv").textContent = Number(bv.toFixed(2));   // 去掉多余小数位
-    $("#calcPv").textContent = pv;
+    $("#calcPv").textContent = pv.toFixed(2);           // 固定两位小数，不四舍五入取整
     try{ localStorage.setItem(CALC_KEY, raw); }catch(e){}
   }
   $("#calcPrice").oninput = calcUpdate;
