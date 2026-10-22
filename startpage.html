@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.22 · 2026-10-22 -->
+<!-- version: r6.23 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -149,6 +149,31 @@
   .tipsAdd{border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent-d);font-weight:800;
     width:26px;height:26px;border-radius:8px;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
   .tipsAdd:active{background:var(--accent);color:#fff}
+  /* BV / PV 计算器 */
+  .calcBox{
+    background:var(--bg1);border:1px solid var(--line);border-radius:12px;
+    padding:11px 12px;margin-bottom:12px;
+  }
+  .calcTitle{font-size:12.5px;font-weight:800;color:var(--accent-d);margin-bottom:8px}
+  .calcRow{display:flex;align-items:center;gap:7px}
+  .calcLbl{font-size:12px;color:var(--muted);flex:0 0 auto}
+  .calcRow input{
+    flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;padding:7px 10px;
+    border-radius:9px;color:var(--ink);background:#fff;font-family:inherit;
+  }
+  .calcRow input:focus{border-color:var(--accent)}
+  .calcClear{border:none;background:#fff;color:var(--muted);font-size:15px;font-weight:700;line-height:1;
+    width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;padding:0}
+  .calcClear:hover{background:var(--accent-soft);color:var(--accent-d)}
+  .calcFormula{font-size:11.5px;color:#8b93a1;margin:8px 0 9px;line-height:1.5}
+  .calcOut{display:flex;gap:8px}
+  .calcItem{
+    flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;
+    display:flex;align-items:center;justify-content:space-between;gap:6px;
+  }
+  .calcItem span{font-size:11.5px;color:var(--muted);font-weight:700}
+  .calcItem b{font-size:16px;color:var(--accent-d);font-variant-numeric:tabular-nums}
+  .calcItem.alt b{color:#2f9e6e}
   .tipsList{display:flex;flex-direction:column;gap:7px}
   .tipRow{display:flex;align-items:flex-start;gap:7px}
   .tipRow textarea{flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;line-height:1.55;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff;resize:vertical;white-space:pre-wrap;word-break:break-word;min-height:38px;display:block;box-sizing:border-box}
@@ -423,6 +448,19 @@
       <div class="tipsHead">
         <h4>验证流程小抄</h4>
         <button class="tipsAdd" id="tipsAdd" title="添加一条提示">＋</button>
+      </div>
+      <div class="calcBox">
+        <div class="calcTitle">BV / PV 计算</div>
+        <div class="calcRow">
+          <span class="calcLbl">折后价</span>
+          <input type="number" id="calcPrice" min="0" step="0.01" placeholder="输入折后价，自动计算" />
+          <button class="calcClear" id="calcClear" title="清空">×</button>
+        </div>
+        <div class="calcFormula">BV = 折后价 × 0.9　　PV = BV ÷ 12.5（四舍五入）</div>
+        <div class="calcOut">
+          <div class="calcItem"><span>BV</span><b id="calcBv">—</b></div>
+          <div class="calcItem alt"><span>PV</span><b id="calcPv">—</b></div>
+        </div>
       </div>
       <div class="tipsList" id="tipsList"></div>
       <div class="tipsHint">点文字直接改 · × 删除 · ＋ 新增</div>
@@ -1175,6 +1213,31 @@
     const inputs = $("#tipsList").querySelectorAll("textarea");
     if(inputs.length) inputs[inputs.length-1].focus();
   };
+
+  // BV / PV 计算：BV = 折后价 × 0.9；PV = BV ÷ 12.5（四舍五入）
+  const CALC_KEY = "startpage_calc_v1";
+  function calcUpdate(){
+    const raw = $("#calcPrice").value;
+    const p = parseFloat(raw);
+    if(raw === "" || isNaN(p) || p < 0){
+      $("#calcBv").textContent = "—"; $("#calcPv").textContent = "—";
+      try{ localStorage.removeItem(CALC_KEY); }catch(e){}
+      return;
+    }
+    const bv = p * 0.9;
+    const pv = Math.round(bv / 12.5);
+    $("#calcBv").textContent = Number(bv.toFixed(2));   // 去掉多余小数位
+    $("#calcPv").textContent = pv;
+    try{ localStorage.setItem(CALC_KEY, raw); }catch(e){}
+  }
+  $("#calcPrice").oninput = calcUpdate;
+  $("#calcClear").onclick = ()=>{ $("#calcPrice").value = ""; calcUpdate(); $("#calcPrice").focus(); };
+  (function initCalc(){
+    let saved = "";
+    try{ saved = localStorage.getItem(CALC_KEY) || ""; }catch(e){}
+    if(saved){ $("#calcPrice").value = saved; }
+    calcUpdate();
+  })();
 
   // 分类 / 优先级 选择
   function bindChips(boxId, onPick){
