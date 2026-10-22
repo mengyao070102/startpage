@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.37 · 2026-10-22 -->
+<!-- version: r6.38 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -195,6 +195,59 @@
   .main.tipsMode .tip,
   .main.tipsMode .undoBar,
   .main.tipsMode .backupBar{display:none !important}
+
+  /* 待办事项页（轻量清单：名称 + 创建时间 + 点击完成） */
+  .simplePanel{
+    display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px;box-shadow:var(--shadow);margin-top:8px;
+  }
+  .main.simpleMode .simplePanel{display:block}
+  /* 进入待办事项视图时，隐藏任务工作区各元素（保留底部备份栏，便于导出/导入） */
+  .main.simpleMode .stickyTop,
+  .main.simpleMode .moreToggle,
+  .main.simpleMode .more,
+  .main.simpleMode #list,
+  .main.simpleMode #empty,
+  .main.simpleMode .tip,
+  .main.simpleMode .undoBar{display:none !important}
+  .spAdd{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  .spAdd input{
+    flex:1;min-width:0;border:1px solid var(--line);outline:none;background:var(--bg1);color:var(--ink);
+    font-size:14px;font-weight:700;padding:9px 12px;border-radius:10px;font-family:inherit;
+  }
+  .spAdd input:focus{border-color:var(--accent);background:#fff}
+  .spAdd button{
+    border:none;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;
+    font-size:13px;font-weight:800;font-family:inherit;padding:9px 18px;border-radius:10px;cursor:pointer;flex:0 0 auto;
+  }
+  .spAdd button:hover{background:var(--accent-hover)}
+  .spList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+  .spItem{
+    display:flex;align-items:center;gap:9px;background:var(--bg1);
+    border-radius:10px;padding:9px 11px;border-left:3px solid transparent;
+  }
+  .spItem.done{opacity:.5;background:#fafbfc;border-left-color:var(--ok)}
+  .spItem.done .spName{text-decoration:line-through;color:var(--muted)}
+  .spChk{
+    width:17px;height:17px;flex:0 0 auto;border:2px solid #c9cfd8;border-radius:50%;
+    background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:#fff;line-height:1;padding:0;transition:all .15s;
+  }
+  .spChk.on{background:var(--ok);border-color:var(--ok)}
+  .spName{
+    flex:1;min-width:0;font-size:14px;font-weight:700;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .spTime{flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .spDel{
+    border:none;background:transparent;color:#c9cfd8;font-size:13px;line-height:1;cursor:pointer;
+    width:17px;height:17px;border-radius:5px;flex:0 0 auto;padding:0;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
+  }
+  .spDel:hover{background:#fbe9ee;color:#e0556f}
+  .spEmpty{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
+  .spStat{text-align:center;color:var(--muted);font-size:11.5px;margin-top:12px}
+
   .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
   .tipsHead h4{font-size:14px;margin:0;color:var(--accent-d)}
   .tipsAdd{border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent-d);font-weight:800;
@@ -419,10 +472,9 @@
     </div>
 
     <nav class="nav">
-      <div class="navTitle">清单</div>
-      <button class="navItem on" data-f="all">全部</button>
-      <button class="navItem" data-f="todo">待办</button>
-      <button class="navItem" data-f="done">已完成</button>
+      <div class="navTitle">页面</div>
+      <button class="navItem on" id="navTaskList">📋 任务清单</button>
+      <button class="navItem" id="navSimple">📝 待办事项</button>
       <div class="navTitle">分类</div>
       <button class="navItem on" data-c="all">全部</button>
       <button class="navItem" data-c="activity">活动</button>
@@ -531,11 +583,22 @@
     <div id="list"></div>
     <div class="empty" id="empty" style="display:none">这里还空空的，添加第一条待办吧 🌟</div>
 
+    <!-- 待办事项页：轻量清单，只需名称，可点击完成，显示创建时间 -->
+    <div class="simplePanel" id="simplePanel">
+      <div class="spAdd">
+        <input type="text" id="spInp" maxlength="120" placeholder="要做什么？回车即可添加" />
+        <button id="spAddBtn">添加</button>
+      </div>
+      <ul class="spList" id="spList"></ul>
+      <div class="spEmpty" id="spEmpty" style="display:none">还没有待办事项，先加一条吧 ✨</div>
+      <div class="spStat" id="spStat">—</div>
+    </div>
+
     <div class="tip">
       数据保存在本机浏览器（localStorage），不会上传。<br/>
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
-      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）；侧栏切到「已完成」视图时会直接展开显示。<br/>
+      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -546,8 +609,8 @@
     </div>
 
     <div class="backupBar">
-      <button id="expBtn" class="bbtn" title="把当前所有任务与版本下载成 JSON 文件">⬇ 导出备份</button>
-      <button id="impBtn" class="bbtn" title="从导出的 JSON 文件恢复任务与版本">⬆ 导入备份</button>
+      <button id="expBtn" class="bbtn" title="把任务清单、待办事项、版本等全部数据下载成 JSON 文件">⬇ 导出备份</button>
+      <button id="impBtn" class="bbtn" title="从导出的 JSON 文件恢复全部数据">⬆ 导入备份</button>
       <input type="file" id="impFile" accept="application/json,.json" style="display:none" />
       <button id="clearDoneBtn" class="bbtn" title="一次性删除所有已完成的任务">🧹 清除已完成</button>
       <span class="btip">换网址/设备后用「导入备份」可保留数据</span>
@@ -1110,6 +1173,68 @@
     $("#empty").style.display = anyVisible ? "none" : "block";
   }
 
+  /* ========== 待办事项页（轻量清单：名称 + 创建时间 + 点击完成） ========== */
+  const SIMPLE_KEY = "startpage_simple_v1";
+  function loadSimple(){
+    try{ const r = JSON.parse(localStorage.getItem(SIMPLE_KEY)); if(Array.isArray(r)) return r; }catch(e){}
+    return [];
+  }
+  function saveSimple(){ try{ localStorage.setItem(SIMPLE_KEY, JSON.stringify(simple)); }catch(e){} }
+  let simple = loadSimple();
+
+  // 创建时间：同年显示 MM-DD HH:mm，跨年补上年份
+  function fmtTs(ts){
+    const d = new Date(ts), now = new Date();
+    const p = n => String(n).padStart(2,"0");
+    const md = p(d.getMonth()+1) + "-" + p(d.getDate());
+    const hm = p(d.getHours()) + ":" + p(d.getMinutes());
+    return (d.getFullYear() !== now.getFullYear() ? d.getFullYear() + "-" : "") + md + " " + hm;
+  }
+
+  function buildSimpleLi(s){
+    const li = document.createElement("li");
+    li.className = "spItem" + (s.done ? " done" : "");
+    const chk = document.createElement("div");
+    chk.className = "spChk" + (s.done ? " on" : "");
+    chk.textContent = s.done ? "✓" : "";
+    chk.title = s.done ? "点击标记为未完成" : "点击完成";
+    const nm = document.createElement("span");
+    nm.className = "spName"; nm.textContent = s.name; nm.title = s.name;
+    const tm = document.createElement("span");
+    tm.className = "spTime"; tm.textContent = "🕒 " + fmtTs(s.ts); tm.title = "创建于 " + fmtTs(s.ts);
+    const del = document.createElement("button");
+    del.className = "spDel"; del.textContent = "×"; del.title = "删除";
+    const toggle = ()=>{ s.done = !s.done; saveSimple(); renderSimple(); };
+    chk.onclick = toggle;
+    nm.onclick = toggle;
+    del.onclick = ()=>{ simple = simple.filter(x=>x.id !== s.id); saveSimple(); renderSimple(); };
+    li.append(chk, nm, tm, del);
+    return li;
+  }
+
+  function renderSimple(){
+    const ul = $("#spList"); if(!ul) return;
+    ul.innerHTML = "";
+    // 未完成在前、已完成沉底，组内按创建时间倒序（最新在上）
+    const act = simple.filter(s=>!s.done).sort((a,b)=>b.ts-a.ts);
+    const fin = simple.filter(s=> s.done).sort((a,b)=>b.ts-a.ts);
+    act.concat(fin).forEach(s=> ul.appendChild(buildSimpleLi(s)));
+    $("#spEmpty").style.display = simple.length ? "none" : "block";
+    $("#spStat").textContent = simple.length
+      ? "共 " + simple.length + " 条 · 待办 " + act.length + " · 已完成 " + fin.length
+      : "—";
+  }
+
+  function addSimple(){
+    const inp = $("#spInp"), v = (inp.value||"").trim();
+    if(!v) return;
+    simple.push({ id: uid(), name: v, done: false, ts: Date.now() });
+    saveSimple(); inp.value = ""; inp.focus(); renderSimple();
+  }
+  $("#spAddBtn").onclick = addSimple;
+  $("#spInp").addEventListener("keydown", e=>{ if(e.key === "Enter") addSimple(); });
+  renderSimple();
+
   // 问候 + 日期
   (function(){
     const now = new Date();
@@ -1158,9 +1283,6 @@
     if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); doAdd(); }
   });
   ta.addEventListener("input", ()=>autoGrow(ta));
-  document.querySelectorAll(".navItem[data-f]").forEach(b=>{
-    b.onclick = ()=>{ filter=b.dataset.f; document.querySelectorAll(".navItem[data-f]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
-  });
   document.querySelectorAll(".navItem[data-c]").forEach(b=>{
     b.onclick = ()=>{ catFilter=b.dataset.c; document.querySelectorAll(".navItem[data-c]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
   });
@@ -1323,20 +1445,24 @@
     todos = todos.filter(t=>!t.done); save(); render();
   };
 
-  // 侧栏「验证TIPS」→ 点击后在右侧主区显示可编辑内容（不再在侧栏内联展开）
+  // 右侧主区三视图统一切换：task(任务清单) / simple(待办事项) / tips(验证TIPS)
   const mainEl = document.querySelector(".main");
-  $("#tipsToggle").onclick = ()=>{
-    const on = mainEl.classList.toggle("tipsMode");
-    $("#tipsToggle").classList.toggle("on", on);
-    if(on) requestAnimationFrame(growAllTips);   // 面板由隐藏变可见后，按真实宽度重算高度
-  };
-  // 点击清单/分类导航时退出 TIPS 视图，回到任务列表
-  document.querySelectorAll('.navItem[data-f], .navItem[data-c]').forEach(b=>{
+  function setView(v){
+    mainEl.classList.toggle("simpleMode", v === "simple");
+    mainEl.classList.toggle("tipsMode",   v === "tips");
+    $("#navTaskList").classList.toggle("on", v === "task");   // 任务清单无专属 class，靠其余两者取反
+    $("#navSimple").classList.toggle("on",   v === "simple");
+    $("#tipsToggle").classList.toggle("on",  v === "tips");
+    if(v === "simple") renderSimple();
+    if(v === "tips") requestAnimationFrame(growAllTips);      // 面板由隐藏变可见后，按真实宽度重算高度
+  }
+  $("#navTaskList").onclick = ()=> setView("task");
+  $("#navSimple").onclick   = ()=> setView("simple");
+  $("#tipsToggle").onclick  = ()=> setView(mainEl.classList.contains("tipsMode") ? "task" : "tips");
+  // 点分类筛选时回到任务清单页（分类对「待办事项」无意义）
+  document.querySelectorAll(".navItem[data-c]").forEach(b=>{
     b.addEventListener("click", ()=>{
-      if(mainEl.classList.contains("tipsMode")){
-        mainEl.classList.remove("tipsMode");
-        $("#tipsToggle").classList.remove("on");
-      }
+      if(mainEl.classList.contains("tipsMode") || mainEl.classList.contains("simpleMode")) setView("task");
     });
   });
 
@@ -1456,12 +1582,13 @@
   function backupExport(){
     const data = {
       _app: "startpage",
-      _v: "r6.20",
+      _v: "r6.38",
       todos: localStorage.getItem(KEY),
       versions: localStorage.getItem(KEY_V),
       tips: localStorage.getItem(TIPS_KEY),
       nvOpen: localStorage.getItem(NV_KEY),
-      links: localStorage.getItem(LINKS_KEY)
+      links: localStorage.getItem(LINKS_KEY),
+      simple: localStorage.getItem(SIMPLE_KEY)
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1484,7 +1611,9 @@
         if(data.tips != null) localStorage.setItem(TIPS_KEY, data.tips);
         if(data.nvOpen != null) localStorage.setItem(NV_KEY, data.nvOpen);
         if(data.links != null) localStorage.setItem(LINKS_KEY, data.links);
+        if(data.simple != null) localStorage.setItem(SIMPLE_KEY, data.simple);
         todos = load(); versions = loadV(); tips = loadTips(); nvOpen = loadNvOpen(); links = loadLinks(); renderLinks();
+        simple = loadSimple(); renderSimple();
         refreshVerSel(); render(); renderTips();
       }catch(e){ alert("导入失败：" + e.message); }
     };
