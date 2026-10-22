@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.25 · 2026-10-22 -->
+<!-- version: r6.26 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -55,7 +55,7 @@
 
   /* 添加栏 */
   .add{
-    display:flex;gap:8px;margin-top:14px;background:var(--card);padding:10px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    display:flex;gap:8px;margin-top:0;background:var(--card);padding:10px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
   }
   .add textarea{
     flex:1;border:none;outline:none;font-size:15px;padding:10px 12px;border-radius:12px;background:var(--bg1);color:var(--ink);
@@ -166,8 +166,7 @@
   }
   .main.tipsMode .tipsPanel{display:block}
   /* 进入 TIPS 视图时，隐藏任务工作区各元素，只显示 TIPS 面板 */
-  .main.tipsMode .search,
-  .main.tipsMode .add,
+  .main.tipsMode .stickyTop,
   .main.tipsMode .moreToggle,
   .main.tipsMode .more,
   .main.tipsMode #list,
@@ -327,6 +326,16 @@
     .navItem{flex:1 1 auto;text-align:center}
     .sideSort{flex:1 1 100%;margin-top:6px}
   }
+  /* 顶部吸附区：搜索 + 添加栏随页面滚动固定在顶部 */
+  .stickyTop{
+    position:sticky;top:0;z-index:30;background:var(--bg1);
+    padding:8px 2px 6px;margin:0 -2px -8px;
+    border-bottom:1px solid transparent;
+  }
+  .stickyTop.stuck{
+    box-shadow:0 10px 14px -14px rgba(0,0,0,.55);
+    border-bottom-color:var(--line);
+  }
   /* 搜索框 */
   .search{
     display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
@@ -411,15 +420,17 @@
 
   <main class="main">
 
-    <div class="search" id="searchBox">
-      <span class="sIcon">🔍</span>
-      <input type="text" id="qInp" maxlength="60" placeholder="搜索任务 / 执行人 / 活动 / 备注 / 版本…" />
-      <button class="sClear" id="qClear" title="清空搜索" style="display:none">×</button>
-    </div>
+    <div class="stickyTop" id="stickyTop">
+      <div class="search" id="searchBox">
+        <span class="sIcon">🔍</span>
+        <input type="text" id="qInp" maxlength="60" placeholder="搜索任务 / 执行人 / 活动 / 备注 / 版本…" />
+        <button class="sClear" id="qClear" title="清空搜索" style="display:none">×</button>
+      </div>
 
-    <div class="add">
-      <textarea id="inp" rows="1" placeholder="一行一个，回车添加（Shift+回车换行，逗号等不再拆分）" maxlength="2000"></textarea>
-      <button id="addBtn">添加</button>
+      <div class="add">
+        <textarea id="inp" rows="1" placeholder="一行一个，回车添加（Shift+回车换行，逗号等不再拆分）" maxlength="2000"></textarea>
+        <button id="addBtn">添加</button>
+      </div>
     </div>
 
     <button class="moreToggle" id="moreToggle">更多选项（优先级/截止日/版本/活动/无需验证/是否活动/FT1/备注）⌄</button>
@@ -1144,6 +1155,22 @@
     b.onclick = ()=>{ catFilter=b.dataset.c; document.querySelectorAll(".navItem[data-c]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
   });
   $("#sort").onchange = e=>{ sortMode=e.target.value; render(); };
+
+  // 顶部吸附：滚动后加阴影，明确"浮在上面"的层级
+  (function stickyShadow(){
+    const el = $("#stickyTop");
+    if(!el) return;
+    const setStuck = on => el.classList.toggle("stuck", !!on);
+    window.addEventListener("scroll", ()=> setStuck(window.scrollY > 8), { passive:true });
+    // 兜底：用文档顶部的哨兵元素判断是否已滚动（兼容不派发 scroll 的环境）
+    const sentinel = document.createElement("div");
+    sentinel.style.cssText = "position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden";
+    document.body.appendChild(sentinel);
+    if("IntersectionObserver" in window){
+      new IntersectionObserver(es=> setStuck(!es[0].isIntersecting), { threshold:0 }).observe(sentinel);
+    }
+    setStuck(window.scrollY > 8);
+  })();
 
   // 搜索框
   $("#qInp").oninput = e=> setQuery(e.target.value);
