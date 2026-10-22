@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.21 · 2026-10-22 -->
+<!-- version: r6.22 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -252,6 +252,8 @@
   }
   .nvToggle:hover{background:#f1f4f8;color:#5f6773;border-color:#c3cad6}
   .nvToggle.on{background:#eef5ff;color:#3b82f6;border-color:#bcd6ff}
+  .nvToggle.doneToggle:hover{background:#eef8f3;color:#2f9e6e;border-color:#bfe6d3}
+  .nvToggle.doneToggle.on{background:#eaf7f0;color:#2f9e6e;border-color:#bfe6d3}
   .nvTasks{list-style:none;margin:8px 0 0;padding:0}
   .nvTasks li{margin-bottom:8px}
   .empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 0}
@@ -433,7 +435,7 @@
       数据保存在本机浏览器（localStorage），不会上传。<br/>
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
-      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证的任务在每个版本内默认收起</b>，显示在底部「▸ 展开无需验证 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。<br/>
+      点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）；侧栏切到「已完成」视图时会直接展开显示。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -879,22 +881,36 @@
   let nvOpen = loadNvOpen();
   function saveNvOpen(){ try{ localStorage.setItem(NV_KEY, JSON.stringify(nvOpen)); }catch(e){} }
 
-  // 构建「无需验证」折叠区：默认收起并显示展开按钮
-  function buildNvBox(key, nvTasks){
+  // 通用折叠区：默认收起并显示展开按钮（无需验证 / 已完成 共用）
+  function buildFoldBox(key, tasks, label, extraCls){
     const box = document.createElement("div"); box.className = "nvBox";
     const open = !!nvOpen[key];
     const btn = document.createElement("button");
-    btn.className = "nvToggle" + (open ? " on" : "");
-    btn.textContent = (open ? "▾ 收起无需验证 " : "▸ 展开无需验证 ") + nvTasks.length + " 项";
-    btn.title = "无需验证的任务默认收起，点击" + (open ? "收起" : "展开");
+    btn.className = "nvToggle" + (open ? " on" : "") + (extraCls ? " " + extraCls : "");
+    btn.textContent = (open ? "▾ 收起" : "▸ 展开") + label + " " + tasks.length + " 项";
+    btn.title = label + "的任务默认收起，点击" + (open ? "收起" : "展开");
     btn.onclick = ()=>{ nvOpen[key] = !open; saveNvOpen(); render(); };
     box.appendChild(btn);
     if(open){
       const ul = document.createElement("ul"); ul.className = "nvTasks";
-      nvTasks.forEach(t=>ul.appendChild(buildTaskLi(t)));
+      tasks.forEach(t=>ul.appendChild(buildTaskLi(t)));
       box.appendChild(ul);
     }
     return box;
+  }
+  function buildNvBox(key, nvTasks){
+    return buildFoldBox(key, nvTasks, "无需验证", "");
+  }
+  // 已完成：默认收起；但当侧栏正筛选「已完成」时直接展开显示（否则该视图会全空）
+  function buildDoneBox(key, doneTasks){
+    if(filter === "done"){
+      const box = document.createElement("div"); box.className = "nvBox";
+      const ul = document.createElement("ul"); ul.className = "nvTasks";
+      doneTasks.forEach(t=>ul.appendChild(buildTaskLi(t)));
+      box.appendChild(ul);
+      return box;
+    }
+    return buildFoldBox(key, doneTasks, "已完成", "doneToggle");
   }
 
   // 版本块：标题栏（折叠/名称/数量/重命名/删除）+ 内部任务列表
@@ -908,9 +924,13 @@
     name.textContent = "📦 " + v.name;
     name.title = "点击重命名版本";
     name.onclick = ()=>editVersionName(v, name);
-    const nvCount = tasks.filter(t=>t.noverify).length;
+    const nvCount = tasks.filter(t=>!t.done && t.noverify).length;
+    const doneCount = tasks.filter(t=>t.done).length;
     const count = document.createElement("span"); count.className = "verCount";
-    count.textContent = tasks.length + " 项" + (nvCount ? " · 无需验证 " + nvCount : "");
+    let cntTxt = tasks.length + " 项";
+    if(nvCount)   cntTxt += " · 无需验证 " + nvCount;
+    if(doneCount) cntTxt += " · 已完成 " + doneCount;
+    count.textContent = cntTxt;
     const vedit = document.createElement("button"); vedit.className = "verBtn"; vedit.textContent = "✏️"; vedit.title = "重命名版本";
     vedit.onclick = ()=>editVersionName(v, name);
     const vdel = document.createElement("button"); vdel.className = "verBtn"; vdel.textContent = "🗑"; vdel.title = "删除版本（任务移出列表，不删除）";
@@ -918,13 +938,15 @@
     head.append(caret, name, count, vedit, vdel);
     block.appendChild(head);
     if(!v.collapsed){
-      // 无需验证的任务单独收起（默认折叠），其余任务正常显示
-      const normal = tasks.filter(t=>!t.noverify);
-      const nvTasks = tasks.filter(t=>t.noverify);
+      // 已完成 与 无需验证 各自默认收起，其余任务正常显示
+      const doneTasks = tasks.filter(t=>t.done);
+      const nvTasks   = tasks.filter(t=>!t.done && t.noverify);
+      const normal    = tasks.filter(t=>!t.done && !t.noverify);
       const ul = document.createElement("ul"); ul.className = "verTasks";
       normal.forEach(t=>ul.appendChild(buildTaskLi(t)));
       block.appendChild(ul);
-      if(nvTasks.length) block.appendChild(buildNvBox("ver:" + v.id, nvTasks));
+      if(nvTasks.length)   block.appendChild(buildNvBox("ver:" + v.id, nvTasks));
+      if(doneTasks.length) block.appendChild(buildDoneBox("done:ver:" + v.id, doneTasks));
     }
     return block;
   }
@@ -981,12 +1003,14 @@
     // 未归入版本的任务
     const ungrouped = sortView(view.filter(t=>!t.gid));
     if(ungrouped.length){
-      const normal = ungrouped.filter(t=>!t.noverify);
-      const nvTasks = ungrouped.filter(t=>t.noverify);
+      const doneTasks = ungrouped.filter(t=>t.done);
+      const nvTasks   = ungrouped.filter(t=>!t.done && t.noverify);
+      const normal    = ungrouped.filter(t=>!t.done && !t.noverify);
       const ul = document.createElement("ul"); ul.className = "plain";
       normal.forEach(t=>ul.appendChild(buildTaskLi(t)));
       list.appendChild(ul);
-      if(nvTasks.length) list.appendChild(buildNvBox("plain", nvTasks));
+      if(nvTasks.length)   list.appendChild(buildNvBox("plain", nvTasks));
+      if(doneTasks.length) list.appendChild(buildDoneBox("done:plain", doneTasks));
       anyVisible = true;
     }
 
