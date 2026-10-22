@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.36 · 2026-10-22 -->
+<!-- version: r6.37 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -296,7 +296,12 @@
   .del:active{background:var(--accent-soft)}
   .pill.noteAdd{background:transparent;color:var(--muted);border:1px dashed #cfc6d6;cursor:pointer;padding:2px 5px;font-size:9.5px}
   .pill.noteAdd:hover{background:#faf7fb}
-  .pill.noteShow{background:#fff6e9;color:#cf7a14;cursor:pointer;padding:5px 8px}
+  /* 有备注时直接显示内容文字，单行显示，超出用 … 截断（悬停 title 看全文） */
+  .pill.noteShow{
+    background:#fff6e9;color:#cf7a14;cursor:pointer;
+    display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis;
+    padding:3px 6px;font-size:9.5px;line-height:1.35;vertical-align:middle;
+  }
   .pill.noteShow:hover{background:#ffeccd}
   .noteEdit{
     flex:1 1 100%;width:100%;border:1px solid var(--accent);outline:none;font-size:12.5px;font-family:inherit;
@@ -830,8 +835,8 @@
     const el = document.createElement("span");
     const paint = ()=>{
       el.className = "pill " + (t.note ? "noteShow" : "noteAdd");
-      el.textContent = t.note ? "📝 备注" : "＋ 备注";
-      if(t.note) el.title = t.note;
+      el.textContent = t.note ? ("📝 " + t.note) : "＋ 备注";   // 默认直接显示备注内容
+      el.title = t.note ? (t.note + "\n（点击可编辑）") : "添加备注";
     };
     paint();
     el.style.cursor = "pointer";
