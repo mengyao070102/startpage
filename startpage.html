@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.40 · 2026-10-22 -->
+<!-- version: r6.41 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -280,6 +280,20 @@
   .calcItem.alt b{color:#2f9e6e}
   .tipsList{display:flex;flex-direction:column;gap:7px}
   .tipRow{display:flex;align-items:flex-start;gap:7px}
+  /* TIPS 拖拽排序手柄 */
+  .tipDrag{
+    flex:0 0 auto;width:16px;align-self:stretch;cursor:grab;
+    color:#cec6d8;font-size:12px;line-height:1;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding-top:12px;user-select:none;-webkit-user-select:none;
+    touch-action:none;                 /* 触屏上按住手柄不被识别为页面滚动 */
+    border-radius:6px;transition:color .15s,background .15s;
+  }
+  .tipDrag:hover{color:var(--accent-d);background:var(--accent-soft)}
+  .tipDrag:active{cursor:grabbing}
+  .tipRow.dragging{opacity:.45}
+  .tipRow.dropBefore{box-shadow:0 -2px 0 0 var(--accent)}
+  .tipRow.dropAfter{box-shadow:0 2px 0 0 var(--accent)}
   .tipRow textarea{flex:1;min-width:0;border:1px solid var(--line);outline:none;font-size:13px;line-height:1.55;padding:8px 10px;border-radius:10px;color:var(--ink);font-family:inherit;background:#fff;resize:vertical;white-space:pre-wrap;word-break:break-word;min-height:38px;display:block;box-sizing:border-box}
   .tipRow textarea:focus{border-color:var(--accent)}
   .tipDel{border:none;cursor:pointer;background:#fbe9ee;color:#e0556f;font-weight:800;width:16px;height:16px;border-radius:5px;font-size:10px;flex:0 0 auto;line-height:1;padding:0}
@@ -577,7 +591,7 @@
         </div>
       </div>
       <div class="tipsList" id="tipsList"></div>
-      <div class="tipsHint">点文字直接改 · × 删除 · ＋ 新增</div>
+      <div class="tipsHint">拖 ⠿ 排序 · 点文字直接改 · × 删除 · ＋ 新增</div>
     </div>
 
     <div id="list"></div>
@@ -599,6 +613,7 @@
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
       点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / 测试用例 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带状态三态标签，<b>按类型显示不同文案</b>：<b>版本需求</b>显示灰色「测试用例未分配」（点一下即分配）→ 蓝色「测试用例编写中」→ 绿色「✓ 测试用例已完成」；<b>活动类任务</b>显示灰色「FT1未测」→ 蓝色「FT1测试中」→ 绿色「✓ FT1 已测」；点标签即可逐级流转，<b>整行底色同步区分</b>：未开始=浅灰底、进行中=<b>蓝底</b>（标题加粗）、已完成=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
+      侧栏「💡 验证TIPS」是验证流程小抄：点文字直接改、× 删除、＋ 新增，按住每行左侧的 ⠿ <b>可上下拖动调整顺序</b>（拖到哪行就在哪行插入，顺序会随备份搬运）。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -1526,12 +1541,14 @@
     const list = $("#tipsList"); list.innerHTML = "";
     tips.forEach((t,i)=>{
       const row = document.createElement("div"); row.className = "tipRow";
+      const grip = document.createElement("div"); grip.className = "tipDrag";
+      grip.textContent = "⠿"; grip.title = "按住拖动可调整顺序";
       const inp = document.createElement("textarea"); inp.value = t; inp.maxLength = 500;
       inp.placeholder = "输入一条提示（可换行）…";
       inp.oninput = ()=>{ tips[i] = inp.value; saveTips(); autoGrowTip(inp); };
       const del = document.createElement("button"); del.className = "tipDel"; del.textContent = "×"; del.title = "删除";
       del.onclick = ()=>{ tips.splice(i,1); saveTips(); renderTips(); };
-      row.append(inp, del); list.appendChild(row);
+      row.append(grip, inp, del); list.appendChild(row);
     });
     growAllTips();
     requestAnimationFrame(growAllTips);   // 面板刚显示时再算一次真实高度
@@ -1543,6 +1560,70 @@
     const inputs = $("#tipsList").querySelectorAll("textarea");
     if(inputs.length) inputs[inputs.length-1].focus();
   };
+
+  // ── TIPS 拖拽排序 ────────────────────────────────────────────
+  // 用 Pointer Events（而非 HTML5 原生拖放）：
+  //   ① 鼠标按住 / 触屏都能用；② 只认左侧 ⠿ 手柄，不干扰 textarea 里选词、拖选文本；
+  //   ③ 事件委托挂在 #tipsList 上，renderTips() 重建 DOM 后无需重新绑定。
+  (function tipsDragSort(){
+    const list = $("#tipsList");
+    let dragIdx = -1, dropIdx = -1;
+
+    function clearMark(){
+      list.querySelectorAll(".tipRow").forEach(r=>{
+        r.classList.remove("dragging","dropBefore","dropAfter");
+      });
+    }
+    // 按指针 Y 判断落点：落在某行上半 → 插到它前面；全在下方 → 插到末尾
+    function markTarget(y){
+      clearMark();
+      const rows = [...list.querySelectorAll(".tipRow")];
+      let idx = rows.length;
+      for(let i=0;i<rows.length;i++){
+        const r = rows[i].getBoundingClientRect();
+        if(y < r.top + r.height/2){ idx = i; break; }
+      }
+      dropIdx = idx;
+      if(idx < rows.length) rows[idx].classList.add("dropBefore");
+      else if(rows.length)  rows[rows.length-1].classList.add("dropAfter");
+      const dragging = rows[dragIdx];
+      if(dragging) dragging.classList.add("dragging");
+    }
+
+    list.addEventListener("pointerdown", e=>{
+      if(e.button != null && e.button !== 0) return;      // 只响应左键
+      const h = e.target.closest(".tipDrag");
+      if(!h) return;
+      const row = h.closest(".tipRow");
+      if(!row || !list.contains(row)) return;
+
+      e.preventDefault();                                  // 防止拖拽时选中文字
+      try{ h.setPointerCapture(e.pointerId); }catch(_){}   // 指针移出手柄也持续收到事件
+      dragIdx = [...list.children].indexOf(row);
+      row.classList.add("dragging");
+
+      const move = ev=>{ if(dragIdx >= 0) markTarget(ev.clientY); };
+      const up = ()=>{
+        h.removeEventListener("pointermove", move);
+        h.removeEventListener("pointerup", up);
+        h.removeEventListener("pointercancel", up);
+        clearMark();
+        let to = dropIdx;
+        // to 是"插入位置"；等于 dragIdx 或 dragIdx+1 都表示原地不动
+        if(dragIdx >= 0 && to >= 0 && to !== dragIdx && to !== dragIdx + 1){
+          if(to > dragIdx) to--;                           // 先摘出再插入，索引要回退一格
+          const [it] = tips.splice(dragIdx, 1);
+          tips.splice(to, 0, it);
+          saveTips();
+          renderTips();
+        }
+        dragIdx = dropIdx = -1;
+      };
+      h.addEventListener("pointermove", move);
+      h.addEventListener("pointerup", up);
+      h.addEventListener("pointercancel", up);
+    });
+  })();
 
   // BV / PV 计算：BV = 折后价 × 0.9；PV = BV ÷ 12.5（保留两位小数，不取整）
   const CALC_KEY = "startpage_calc_v1";
