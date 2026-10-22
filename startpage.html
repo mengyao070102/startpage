@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.30 · 2026-10-22 -->
+<!-- version: r6.32 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -38,37 +38,40 @@
   }
   .app{max-width:980px;margin:0 auto;display:flex;gap:18px;align-items:flex-start}
   .sidebar{
-    flex:0 0 210px;
-    /* 默认：固定常驻 + 自身独立滚动（滚右侧列表不影响侧栏，滚侧栏不影响列表） */
+    flex:0 0 200px;
+    /* 默认：固定常驻；内容已压缩到 ~600px，绝大多数屏幕不需要内部滚动 */
     position:sticky;top:18px;
     max-height:calc(100vh - 36px);
-    overflow-y:auto;overscroll-behavior:contain;   /* 独立滚动，不把滚动传给页面 */
+    overflow-y:auto;overscroll-behavior:auto;      /* 侧栏滚到头后自然接力给页面，不留"死区" */
     scrollbar-width:thin;scrollbar-color:#dfe3e9 transparent;
     background:var(--card);color:var(--ink);
-    border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
+    border:1px solid var(--line);border-radius:16px;padding:12px 11px;box-shadow:var(--shadow);
   }
   /* 侧栏细滚动条 */
   .sidebar::-webkit-scrollbar{width:6px}
   .sidebar::-webkit-scrollbar-track{background:transparent}
   .sidebar::-webkit-scrollbar-thumb{background:#dfe3e9;border-radius:3px}
   .sidebar::-webkit-scrollbar-thumb:hover{background:#c9cfd8}
-  /* 加 .follow 时才改为跟随页面一起滚动 */
+  /* .lock：滚侧栏时页面完全不动（锁滚） */
+  .sidebar.lock{overscroll-behavior:contain}
+  /* .follow：侧栏取消固定，随页面一起滚走 */
   .sidebar.follow{position:static;max-height:none;overflow:visible}
   /* 侧栏固定/跟随切换按钮 */
   .pinBtn{
-    border:none;background:transparent;cursor:pointer;font-size:14px;line-height:1;
-    width:24px;height:24px;border-radius:8px;flex:0 0 auto;margin-left:auto;align-self:flex-start;
-    display:flex;align-items:center;justify-content:center;opacity:.55;transition:opacity .15s,background .15s;
+    border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+    font-size:11px;font-weight:700;font-family:inherit;line-height:1;padding:4px 7px;
+    border-radius:8px;flex:0 0 auto;margin-left:auto;align-self:flex-start;
+    display:flex;align-items:center;gap:3px;white-space:nowrap;transition:all .15s;
   }
   .pinBtn:hover{opacity:1;background:var(--accent-soft)}
   .main{flex:1;min-width:0}
 
   /* 侧栏品牌区 */
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:relative}
-  .brand .mascot{width:46px;height:46px;flex:0 0 auto}
-  .brandTitle{font-size:17px;font-weight:800}
-  .brand .hi{font-size:12px;opacity:.92;margin-top:2px}
-  .brand .date{font-size:11px;opacity:.85;margin-top:2px}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:10px;position:relative}
+  .brand .mascot{width:36px;height:36px;flex:0 0 auto}
+  .brandTitle{font-size:15px;font-weight:800;line-height:1.2}
+  .brand .hi{font-size:11.5px;opacity:.92;margin-top:1px}
+  .brand .date{font-size:10.5px;opacity:.85;margin-top:1px}
 
   /* 进度条（已移除分数展示，样式保留为空以防误用） */
 
@@ -138,20 +141,20 @@
   .editBtn:active{background:var(--accent-soft)}
 
   /* 侧栏导航 */
-  .nav{display:flex;flex-direction:column;gap:6px}
-  .navTitle{font-size:11px;color:var(--muted);margin:14px 4px 2px;font-weight:700;letter-spacing:.5px}
+  .nav{display:flex;flex-direction:column;gap:4px}
+  .navTitle{font-size:10.5px;color:var(--muted);margin:9px 4px 1px;font-weight:700;letter-spacing:.5px}
   .navItem{
-    border:1px solid transparent;cursor:pointer;text-align:left;font-size:14px;font-weight:700;
-    padding:9px 12px;border-radius:10px;color:var(--ink);background:var(--bg1);transition:all .15s ease;
+    border:1px solid transparent;cursor:pointer;text-align:left;font-size:13px;font-weight:700;
+    padding:6px 10px;border-radius:9px;color:var(--ink);background:var(--bg1);transition:all .15s ease;
   }
   .navItem:hover{background:var(--bg2)}
   .navItem.on{background:var(--accent-soft);color:var(--accent-d);border-color:var(--accent-hover)}
   /* 侧栏「链接直达」：可编辑、点击新标签打开 */
-  .navLinks{display:flex;flex-direction:column;gap:5px}
+  .navLinks{display:flex;flex-direction:column;gap:4px}
   .linkRow{display:flex;align-items:center;gap:3px}
   .linkItem{
-    flex:1;min-width:0;text-decoration:none;font-size:13px;font-weight:700;color:var(--ink);
-    background:#fff;border:1px solid var(--line);padding:8px 9px;border-radius:10px;
+    flex:1;min-width:0;text-decoration:none;font-size:12px;font-weight:700;color:var(--ink);
+    background:#fff;border:1px solid var(--line);padding:5px 8px;border-radius:9px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s,border-color .15s;
   }
   .linkItem:hover{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-d)}
@@ -173,12 +176,12 @@
   .linkBtnSave:hover{background:var(--accent-hover)}
   .linkBtnCancel{background:#fff;color:var(--muted);border:1px solid var(--line)}
   .linkAdd{
-    border:1px dashed #d6dae1;background:transparent;color:#8b93a1;font-size:12px;font-weight:700;
-    padding:6px 9px;border-radius:10px;cursor:pointer;text-align:left;
+    border:1px dashed #d6dae1;background:transparent;color:#8b93a1;font-size:11.5px;font-weight:700;
+    padding:4px 9px;border-radius:9px;cursor:pointer;text-align:left;
   }
   .linkAdd:hover{background:#fff;color:var(--accent-d);border-color:var(--accent)}
-  .sideSort{margin-top:18px}
-  .sortLabel{font-size:11px;color:var(--muted);display:block;margin:0 4px 6px;font-weight:700}
+  .sideSort{margin-top:10px}
+  .sortLabel{font-size:10.5px;color:var(--muted);display:block;margin:0 4px 3px;font-weight:700}
   /* 验证 TIPS 面板（右侧主区，可编辑） */
   .tipsPanel{
     display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-top:8px;
@@ -232,7 +235,7 @@
   .tipsHint{font-size:11px;color:#b3a9bb;margin-top:9px;text-align:center}
   .sort{
     width:100%;border:1px solid var(--line);outline:none;background:var(--card);color:var(--ink);
-    font-size:13px;font-weight:700;padding:9px 10px;border-radius:10px;cursor:pointer;
+    font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:9px;cursor:pointer;
   }
 
   /* 列表 */
@@ -338,7 +341,7 @@
 
   @media (max-width:720px){
     .app{flex-direction:column;gap:12px}
-    .sidebar,.sidebar.follow{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-height:none;overflow:visible}
+    .sidebar,.sidebar.lock,.sidebar.follow{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-height:none;overflow:visible}
     .pinBtn{display:none}   /* 移动端侧栏本来就在顶部，无需固定切换 */
     .brand{margin-bottom:0;flex:1 1 100%}
     .nav{flex-direction:row;flex-wrap:wrap;gap:6px;flex:1 1 100%}
@@ -386,6 +389,10 @@
   .bbtn{border:none;background:var(--bg1);color:var(--ink);font-size:12.5px;padding:7px 13px;border-radius:10px;cursor:pointer;transition:background .12s}
   .bbtn:hover{background:var(--accent-soft)}
   .btip{font-size:11.5px;color:#a99fb2}
+  .verBadge{
+    font-size:11px;font-weight:800;color:var(--accent-d);background:var(--accent-soft);
+    padding:3px 9px;border-radius:8px;cursor:default;user-select:all;
+  }
 </style>
 </head>
 <body>
@@ -409,7 +416,7 @@
         <div class="hi" id="hi">你好呀 👋</div>
         <div class="date" id="date">—</div>
       </div>
-      <button class="pinBtn" id="pinBtn" title="固定侧栏（不随页面滚动）">📍</button>
+      <button class="pinBtn" id="pinBtn" title="切换侧栏滚动方式">📌 固定</button>
     </div>
 
     <nav class="nav">
@@ -555,6 +562,7 @@
       <input type="file" id="impFile" accept="application/json,.json" style="display:none" />
       <button id="clearDoneBtn" class="bbtn" title="一次性删除所有已完成的任务">🧹 清除已完成</button>
       <span class="btip">换网址/设备后用「导入备份」可保留数据</span>
+      <span class="verBadge" id="verBadge" title="当前页面版本（看不到最新版本号说明浏览器还在用缓存，请 Ctrl+F5 强刷）">—</span>
     </div>
   </main>
 
@@ -1208,39 +1216,56 @@
     };
   });
 
-  // 侧栏「固定常驻 / 跟随滚动」切换（默认固定：左右各自独立滚动）
-  const PIN_KEY = "startpage_pin_v1";
-  (function initPin(){
+  // 侧栏滚动模式：auto(独立+接力) / lock(锁滚) / follow(跟随页面)
+  const SB_KEY = "startpage_sbscroll_v1";
+  window.__sbMode = "auto";
+  (function initSbScroll(){
     const sb = document.querySelector(".sidebar");
     const btn = $("#pinBtn");
-    let pinned = true;                                  // 默认固定
-    try{ pinned = localStorage.getItem(PIN_KEY) !== "0"; }catch(e){}
-    function apply(p){
-      sb.classList.toggle("follow", !p);                // 非固定 → 跟随页面
-      if(btn){
-        btn.textContent = p ? "📌" : "📍";
-        btn.title = p ? "侧栏已固定（左右各自独立滚动），点击改为跟随页面滚动" : "侧栏跟随页面滚动，点击固定侧栏";
-      }
-      try{ localStorage.setItem(PIN_KEY, p ? "1" : "0"); }catch(e){}
+    const MODES = [
+      { k:"auto",   icon:"📌", text:"独立", title:"独立模式：鼠标在侧栏上滚→先滚侧栏，滚到头后页面接着滚；滚右侧列表时侧栏保持可见" },
+      { k:"lock",   icon:"🔒", text:"锁滚", title:"锁滚模式：鼠标在侧栏上滚→只滚侧栏，页面完全不动（侧栏到头后就停住）" },
+      { k:"follow", icon:"📍", text:"跟随", title:"跟随模式：侧栏不固定，随页面一起向上滚走" }
+    ];
+    let idx = 0;
+    try{
+      const v = localStorage.getItem(SB_KEY);
+      const i = MODES.findIndex(m => m.k === v);
+      if(i >= 0) idx = i;
+    }catch(e){}
+    function apply(){
+      const m = MODES[idx];
+      window.__sbMode = m.k;
+      sb.classList.toggle("lock",   m.k === "lock");
+      sb.classList.toggle("follow", m.k === "follow");
+      if(btn){ btn.textContent = m.icon + " " + m.text; btn.title = m.title + "（点击切换）"; }
+      try{ localStorage.setItem(SB_KEY, m.k); }catch(e){}
     }
-    apply(pinned);
-    if(btn) btn.onclick = ()=>{ pinned = !pinned; apply(pinned); };
+    apply();
+    if(btn) btn.onclick = ()=>{ idx = (idx + 1) % MODES.length; apply(); };
   })();
 
-  // 侧栏滚轮隔离：鼠标在侧栏上滚动时，绝不带动右侧列表（即使侧栏内容没超高也吞掉滚动）
+  // 显示当前版本号（便于确认浏览器是否已加载到最新版，排除缓存干扰）
+  (function showVer(){
+    const m = document.documentElement.innerHTML.match(/version:\s*(r[\d.]+)/);
+    const badge = $("#verBadge");
+    if(badge) badge.textContent = m ? m[1] : "未知版本";
+  })();
+
+  // 侧栏滚轮：仅「锁滚」模式下拦截，让滚侧栏完全不带动页面；其余模式交给浏览器原生接力
   (function sidebarWheelIsolate(){
     const sb = document.querySelector(".sidebar");
     if(!sb) return;
     sb.addEventListener("wheel", e=>{
-      if(sb.classList.contains("follow")) return;                     // 跟随模式下不干预
-      if(!window.matchMedia("(min-width:721px)").matches) return;      // 移动端侧栏在顶部，不拦截
+      if(!sb.classList.contains("lock")) return;                       // 非锁滚模式不干预
+      if(!window.matchMedia("(min-width:721px)").matches) return;        // 移动端侧栏在顶部，不拦截
       const can = sb.scrollHeight > sb.clientHeight + 1;
       if(can){
         const atTop = sb.scrollTop <= 0;
         const atBottom = sb.scrollTop + sb.clientHeight >= sb.scrollHeight - 1;
-        if(e.deltaY > 0 ? !atBottom : !atTop) return;                  // 侧栏自己能滚 → 交给它
+        if(e.deltaY > 0 ? !atBottom : !atTop) return;                    // 侧栏自己还能滚 → 交给它
       }
-      e.preventDefault();                                              // 否则吞掉，避免滚动传给页面
+      e.preventDefault();                                               // 锁滚：吞掉，页面不动
     }, { passive:false });
   })();
 
