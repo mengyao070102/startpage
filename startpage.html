@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.24 · 2026-10-22 -->
+<!-- version: r6.25 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -127,6 +127,37 @@
   }
   .navItem:hover{background:var(--bg2)}
   .navItem.on{background:var(--accent-soft);color:var(--accent-d);border-color:var(--accent-hover)}
+  /* 侧栏「链接直达」：可编辑、点击新标签打开 */
+  .navLinks{display:flex;flex-direction:column;gap:5px}
+  .linkRow{display:flex;align-items:center;gap:3px}
+  .linkItem{
+    flex:1;min-width:0;text-decoration:none;font-size:13px;font-weight:700;color:var(--ink);
+    background:#fff;border:1px solid var(--line);padding:8px 9px;border-radius:10px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s,border-color .15s;
+  }
+  .linkItem:hover{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-d)}
+  .linkBtn{
+    border:none;background:transparent;color:#b6adb9;font-size:12px;line-height:1;cursor:pointer;
+    width:20px;height:20px;border-radius:6px;flex:0 0 auto;padding:0;display:flex;align-items:center;justify-content:center;
+  }
+  .linkBtn:hover{background:var(--accent-soft);color:var(--accent-d)}
+  .linkEdit{display:flex;flex-direction:column;gap:5px;flex:1 1 100%}
+  .linkEdit input{
+    width:100%;border:1px solid var(--accent);outline:none;font-size:12px;padding:6px 8px;border-radius:8px;
+    color:var(--ink);background:#fff;font-family:inherit;box-sizing:border-box;
+  }
+  .linkEditBtns{display:flex;gap:5px}
+  .linkBtnSave,.linkBtnCancel{
+    flex:1;border:none;font-size:12px;font-weight:700;padding:5px 0;border-radius:8px;cursor:pointer;
+  }
+  .linkBtnSave{background:var(--accent);color:#fff}
+  .linkBtnSave:hover{background:var(--accent-hover)}
+  .linkBtnCancel{background:#fff;color:var(--muted);border:1px solid var(--line)}
+  .linkAdd{
+    border:1px dashed #d6dae1;background:transparent;color:#8b93a1;font-size:12px;font-weight:700;
+    padding:6px 9px;border-radius:10px;cursor:pointer;text-align:left;
+  }
+  .linkAdd:hover{background:#fff;color:var(--accent-d);border-color:var(--accent)}
   .sideSort{margin-top:18px}
   .sortLabel{font-size:11px;color:var(--muted);display:block;margin:0 4px 6px;font-weight:700}
   /* 验证 TIPS 面板（右侧主区，可编辑） */
@@ -360,6 +391,9 @@
       <button class="navItem on" data-c="all">全部</button>
       <button class="navItem" data-c="activity">活动</button>
       <button class="navItem" data-c="version">版本</button>
+      <div class="navTitle">链接</div>
+      <div class="navLinks" id="navLinks"></div>
+
       <div class="navTitle">提示</div>
       <button class="navItem" id="tipsToggle">💡 验证TIPS</button>
     </nav>
@@ -1126,6 +1160,69 @@
     };
   });
 
+  // 侧栏「链接直达」：可增删改，点击新标签打开
+  const LINKS_KEY = "startpage_links_v1";
+  const DEFAULT_LINKS = [
+    { name:"飞书",     url:"https://my.feishu.cn/drive/home/?table=tblL3Mk8wGcVNAzf&view=vewlhWWG06" },
+    { name:"jira",     url:"https://cnpmp.amway.com.cn/jira/issues/?filter=16667" },
+    { name:"工时",     url:"https://jira.lianwei.com.cn/secure/TempoUserBoard!timesheet.jspa" },
+    { name:"用例平台", url:"http://10.122.227.233:8081/#/track/home" }
+  ];
+  function loadLinks(){
+    try{ const r = JSON.parse(localStorage.getItem(LINKS_KEY)); if(Array.isArray(r)) return r; }catch(e){}
+    return DEFAULT_LINKS.map(x=>({ name:x.name, url:x.url }));
+  }
+  function saveLinks(){ try{ localStorage.setItem(LINKS_KEY, JSON.stringify(links)); }catch(e){} }
+  let links = loadLinks();
+  let pendingLinkEdit = -1;      // 新增后自动进入编辑的索引
+  function normUrl(u){
+    u = (u||"").trim();
+    if(!u) return "";
+    if(!/^https?:\/\//i.test(u)) u = "https://" + u;   // 没写协议时自动补 https://
+    return u;
+  }
+  function renderLinks(){
+    const box = $("#navLinks"); box.innerHTML = "";
+    links.forEach((l,i)=>{
+      const row = document.createElement("div"); row.className = "linkRow";
+      const a = document.createElement("a");
+      a.className = "linkItem"; a.href = l.url || "#"; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = "🔗 " + (l.name || l.url); a.title = l.url;
+      const ed = document.createElement("button"); ed.className = "linkBtn"; ed.textContent = "✏️"; ed.title = "编辑";
+      ed.onclick = ()=>editLink(i, row);
+      const del = document.createElement("button"); del.className = "linkBtn"; del.textContent = "×"; del.title = "删除";
+      del.onclick = ()=>{ links.splice(i,1); saveLinks(); renderLinks(); };
+      row.append(a, ed, del); box.appendChild(row);
+    });
+    const add = document.createElement("button"); add.className = "linkAdd"; add.textContent = "＋ 添加链接";
+    add.onclick = ()=>{ links.push({ name:"新链接", url:"https://" }); pendingLinkEdit = links.length-1; saveLinks(); renderLinks(); };
+    box.appendChild(add);
+    if(pendingLinkEdit >= 0 && links[pendingLinkEdit]){
+      const rows = box.querySelectorAll(".linkRow");
+      if(rows[pendingLinkEdit]) editLink(pendingLinkEdit, rows[pendingLinkEdit]);
+      pendingLinkEdit = -1;
+    }
+  }
+  function editLink(i, row){
+    const l = links[i]; if(!l) return;
+    const box = document.createElement("div"); box.className = "linkEdit";
+    const ni = document.createElement("input"); ni.type = "text"; ni.value = l.name || ""; ni.placeholder = "名称（如：飞书）";
+    const ui = document.createElement("input"); ui.type = "text"; ui.value = l.url || "";  ui.placeholder = "网址 https://…";
+    const btns = document.createElement("div"); btns.className = "linkEditBtns";
+    const sv = document.createElement("button"); sv.className = "linkBtnSave"; sv.textContent = "保存";
+    sv.onclick = ()=>{
+      const n = ni.value.trim(), u = normUrl(ui.value);
+      if(!n || !u){ alert("名称和网址都要填写"); return; }
+      links[i] = { name:n, url:u }; saveLinks(); renderLinks();
+    };
+    const cx = document.createElement("button"); cx.className = "linkBtnCancel"; cx.textContent = "取消";
+    cx.onclick = ()=>renderLinks();
+    ui.addEventListener("keydown", e=>{ if(e.key === "Enter") sv.click(); });
+    btns.append(sv, cx); box.append(ni, ui, btns);
+    row.replaceWith(box); ni.focus(); ni.select();
+  }
+  renderLinks();
+
   // 删除撤销
   $("#undoBtn").onclick = undoDelete;
 
@@ -1274,7 +1371,8 @@
       todos: localStorage.getItem(KEY),
       versions: localStorage.getItem(KEY_V),
       tips: localStorage.getItem(TIPS_KEY),
-      nvOpen: localStorage.getItem(NV_KEY)
+      nvOpen: localStorage.getItem(NV_KEY),
+      links: localStorage.getItem(LINKS_KEY)
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1296,7 +1394,8 @@
         if(data.versions != null) localStorage.setItem(KEY_V, data.versions);
         if(data.tips != null) localStorage.setItem(TIPS_KEY, data.tips);
         if(data.nvOpen != null) localStorage.setItem(NV_KEY, data.nvOpen);
-        todos = load(); versions = loadV(); tips = loadTips(); nvOpen = loadNvOpen();
+        if(data.links != null) localStorage.setItem(LINKS_KEY, data.links);
+        todos = load(); versions = loadV(); tips = loadTips(); nvOpen = loadNvOpen(); links = loadLinks(); renderLinks();
         refreshVerSel(); render(); renderTips();
       }catch(e){ alert("导入失败：" + e.message); }
     };
