@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.26 · 2026-10-22 -->
+<!-- version: r6.27 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -38,14 +38,27 @@
   }
   .app{max-width:980px;margin:0 auto;display:flex;gap:18px;align-items:flex-start}
   .sidebar{
-    flex:0 0 210px;position:sticky;top:18px;
+    flex:0 0 210px;
+    /* 默认：跟随页面一起滚动（与右侧同步）；加 .pinned 后固定常驻 */
+    position:relative;
     background:var(--card);color:var(--ink);
     border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
   }
+  .sidebar.pinned{
+    position:sticky;top:18px;
+    max-height:calc(100vh - 36px);overflow-y:auto;overscroll-behavior:contain;
+  }
+  /* 侧栏固定/跟随切换按钮 */
+  .pinBtn{
+    border:none;background:transparent;cursor:pointer;font-size:14px;line-height:1;
+    width:24px;height:24px;border-radius:8px;flex:0 0 auto;margin-left:auto;align-self:flex-start;
+    display:flex;align-items:center;justify-content:center;opacity:.55;transition:opacity .15s,background .15s;
+  }
+  .pinBtn:hover{opacity:1;background:var(--accent-soft)}
   .main{flex:1;min-width:0}
 
   /* 侧栏品牌区 */
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:relative}
   .brand .mascot{width:46px;height:46px;flex:0 0 auto}
   .brandTitle{font-size:17px;font-weight:800}
   .brand .hi{font-size:12px;opacity:.92;margin-top:2px}
@@ -319,7 +332,8 @@
 
   @media (max-width:720px){
     .app{flex-direction:column;gap:12px}
-    .sidebar{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    .sidebar,.sidebar.pinned{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-height:none;overflow:visible}
+    .pinBtn{display:none}   /* 移动端侧栏本来就在顶部，无需固定切换 */
     .brand{margin-bottom:0;flex:1 1 100%}
     .nav{flex-direction:row;flex-wrap:wrap;gap:6px;flex:1 1 100%}
     .navTitle{flex:1 1 100%;margin:6px 4px 0}
@@ -389,6 +403,7 @@
         <div class="hi" id="hi">你好呀 👋</div>
         <div class="date" id="date">—</div>
       </div>
+      <button class="pinBtn" id="pinBtn" title="固定侧栏（不随页面滚动）">📍</button>
     </div>
 
     <nav class="nav">
@@ -1186,6 +1201,25 @@
       $("#dueInp").value = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0");
     };
   });
+
+  // 侧栏「跟随滚动 / 固定常驻」切换（默认跟随，与右侧内容同步滚动）
+  const PIN_KEY = "startpage_pin_v1";
+  (function initPin(){
+    const sb = document.querySelector(".sidebar");
+    const btn = $("#pinBtn");
+    let pinned = false;
+    try{ pinned = localStorage.getItem(PIN_KEY) === "1"; }catch(e){}
+    function apply(p){
+      sb.classList.toggle("pinned", !!p);
+      if(btn){
+        btn.textContent = p ? "📌" : "📍";
+        btn.title = p ? "侧栏已固定（不随页面滚动），点击改为跟随滚动" : "侧栏跟随页面滚动，点击固定侧栏";
+      }
+      try{ localStorage.setItem(PIN_KEY, p ? "1" : "0"); }catch(e){}
+    }
+    apply(pinned);
+    if(btn) btn.onclick = ()=>{ pinned = !pinned; apply(pinned); };
+  })();
 
   // 侧栏「链接直达」：可增删改，点击新标签打开
   const LINKS_KEY = "startpage_links_v1";
