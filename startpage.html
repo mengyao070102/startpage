@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.20 · 2026-10-22 -->
+<!-- version: r6.21 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -135,12 +135,14 @@
   }
   .main.tipsMode .tipsPanel{display:block}
   /* 进入 TIPS 视图时，隐藏任务工作区各元素，只显示 TIPS 面板 */
+  .main.tipsMode .search,
   .main.tipsMode .add,
   .main.tipsMode .moreToggle,
   .main.tipsMode .more,
   .main.tipsMode #list,
   .main.tipsMode #empty,
   .main.tipsMode .tip,
+  .main.tipsMode .undoBar,
   .main.tipsMode .backupBar{display:none !important}
   .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
   .tipsHead h4{font-size:14px;margin:0;color:var(--accent-d)}
@@ -267,6 +269,32 @@
     .navItem{flex:1 1 auto;text-align:center}
     .sideSort{flex:1 1 100%;margin-top:6px}
   }
+  /* 搜索框 */
+  .search{
+    display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:6px 10px;margin-bottom:8px;box-shadow:var(--shadow);
+  }
+  .sIcon{font-size:13px;opacity:.6;flex:0 0 auto}
+  .search input{
+    flex:1;min-width:0;border:none;outline:none;font-size:13px;color:var(--ink);background:transparent;font-family:inherit;
+  }
+  .search input::placeholder{color:#b6adb9}
+  .sClear{border:none;background:var(--bg1);color:var(--muted);font-size:14px;font-weight:700;line-height:1;
+    width:20px;height:20px;border-radius:50%;cursor:pointer;flex:0 0 auto;padding:0}
+  .sClear:hover{background:var(--accent-soft);color:var(--accent-d)}
+  .quickDue{display:flex;gap:5px;flex:0 0 auto}
+  .qd{border:1px solid var(--line);background:#fff;color:var(--muted);font-size:11.5px;font-weight:700;
+    padding:4px 9px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .qd:hover{background:var(--accent-soft);color:var(--accent-d);border-color:var(--accent-soft)}
+  .qdClear:hover{background:#fbe9ee;color:#e0556f;border-color:#fbe9ee}
+  /* 删除撤销条 */
+  .undoBar{
+    display:flex;align-items:center;gap:10px;margin-top:10px;background:#fff4f7;border:1px solid #ffd0dd;
+    color:#c2415f;font-size:12.5px;padding:8px 12px;border-radius:10px;
+  }
+  .undoBar #undoTxt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .undoBtn{border:none;background:#c2415f;color:#fff;font-size:12px;font-weight:800;padding:5px 12px;border-radius:8px;cursor:pointer;flex:0 0 auto}
+  .undoBtn:hover{background:#a8324c}
   .backupBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 2px 2px}
   .bbtn{border:none;background:var(--bg1);color:var(--ink);font-size:12.5px;padding:7px 13px;border-radius:10px;cursor:pointer;transition:background .12s}
   .bbtn:hover{background:var(--accent-soft)}
@@ -322,6 +350,12 @@
 
   <main class="main">
 
+    <div class="search" id="searchBox">
+      <span class="sIcon">🔍</span>
+      <input type="text" id="qInp" maxlength="60" placeholder="搜索任务 / 执行人 / 活动 / 备注 / 版本…" />
+      <button class="sClear" id="qClear" title="清空搜索" style="display:none">×</button>
+    </div>
+
     <div class="add">
       <textarea id="inp" rows="1" placeholder="一行一个，回车添加（Shift+回车换行，逗号等不再拆分）" maxlength="2000"></textarea>
       <button id="addBtn">添加</button>
@@ -340,6 +374,12 @@
     <div class="moreRow">
       <span class="lbl">截止日</span>
       <input type="date" id="dueInp" />
+      <div class="quickDue">
+        <button class="qd" data-d="0">今天</button>
+        <button class="qd" data-d="1">明天</button>
+        <button class="qd" data-d="7">下周</button>
+        <button class="qd qdClear" data-d="clear">清除</button>
+      </div>
     </div>
     <div class="moreRow">
       <span class="lbl">执行人</span>
@@ -391,16 +431,23 @@
 
     <div class="tip">
       数据保存在本机浏览器（localStorage），不会上传。<br/>
+      顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
       点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / FT1测试 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带 FT1 三态标签：灰色「FT1未测」（未分配，点一下即开始并自动标记已分配）→ 蓝色「FT1测试中」→ 点它变绿色「✓ FT1 已测」（再点回测试中）；<b>整行底色同步区分</b>：FT1未测=浅灰底、FT1测试中=<b>蓝底</b>（标题加粗）、FT1已测=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证的任务在每个版本内默认收起</b>，显示在底部「▸ 展开无需验证 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
 
+    <div class="undoBar" id="undoBar" style="display:none">
+      <span id="undoTxt"></span>
+      <button class="undoBtn" id="undoBtn">撤销</button>
+    </div>
+
     <div class="backupBar">
       <button id="expBtn" class="bbtn" title="把当前所有任务与版本下载成 JSON 文件">⬇ 导出备份</button>
       <button id="impBtn" class="bbtn" title="从导出的 JSON 文件恢复任务与版本">⬆ 导入备份</button>
       <input type="file" id="impFile" accept="application/json,.json" style="display:none" />
+      <button id="clearDoneBtn" class="bbtn" title="一次性删除所有已完成的任务">🧹 清除已完成</button>
       <span class="btip">换网址/设备后用「导入备份」可保留数据</span>
     </div>
   </main>
@@ -512,7 +559,29 @@
     t.done = !t.done; save(); render();
   }
   function remove(id){
-    todos = todos.filter(x=>x.id!==id); save(); render();
+    const idx = todos.findIndex(x=>x.id===id); if(idx < 0) return;
+    const t = todos.splice(idx, 1)[0]; save(); render();
+    undoStack.push({ t, idx });        // 可撤销
+    showUndo();
+  }
+  // 删除撤销：暂存最近删除的任务，几秒内可一键还原
+  let undoStack = [];
+  let undoTimer = null;
+  function showUndo(){
+    const bar = $("#undoBar");
+    const last = undoStack[undoStack.length-1];
+    if(!last){ bar.style.display = "none"; return; }
+    const name = last.t.text.length > 18 ? last.t.text.slice(0, 18) + "…" : last.t.text;
+    $("#undoTxt").textContent = "已删除「" + name + "」";
+    bar.style.display = "flex";
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(()=>{ undoStack = []; bar.style.display = "none"; }, 8000);
+  }
+  function undoDelete(){
+    const last = undoStack.pop(); if(!last) return;
+    todos.splice(Math.min(last.idx, todos.length), 0, last.t);
+    save(); render();
+    if(undoStack.length) showUndo(); else $("#undoBar").style.display = "none";
   }
   function startEdit(id){ editingId = id; render(); }
   function cancelEdit(){ editingId = null; render(); }
@@ -523,7 +592,7 @@
     t.text = v; t.pri = editPri; t.due = due||""; t.who = (who||"").trim();
     t.gid = gid || ""; t.activity = (activity||"").trim();
     t.noverify = !!noverify; t.isAct = !!isAct; t.note = (note||"").trim();
-    t.ft1Tested = !!(t.isAct && ft1Tested);   // 仅活动类才记录 FT1 测试状态
+    t.ft1Tested = !!ft1Tested;   // FT1 适用于所有任务（已分配或活动类都可标记）
     editingId = null; save(); render();
   }
 
@@ -874,6 +943,21 @@
     inp.addEventListener("blur", commit);
   }
 
+  // 搜索：匹配任务文字 / 执行人 / 活动 / 备注 / 版本名
+  let query = "";
+  function matchQuery(t){
+    const q = query.trim().toLowerCase();
+    if(!q) return true;
+    const vName = (versions.find(v=>v.id===t.gid) || {}).name || "";
+    return [t.text, t.who, t.activity, t.note, vName]
+      .some(s => (s || "").toLowerCase().includes(q));
+  }
+  function setQuery(v){
+    query = v || "";
+    $("#qClear").style.display = query ? "flex" : "none";
+    render();
+  }
+
   function render(){
     const list = $("#list"); list.innerHTML = "";
     const view = todos.filter(t =>
@@ -882,6 +966,7 @@
           : catFilter==="activity" ? !!t.isAct
           : catFilter==="version" ? !!t.gid
           : true)
+      && matchQuery(t)
     );
     let anyVisible = false;
 
@@ -963,6 +1048,32 @@
     b.onclick = ()=>{ catFilter=b.dataset.c; document.querySelectorAll(".navItem[data-c]").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
   });
   $("#sort").onchange = e=>{ sortMode=e.target.value; render(); };
+
+  // 搜索框
+  $("#qInp").oninput = e=> setQuery(e.target.value);
+  $("#qInp").addEventListener("keydown", e=>{ if(e.key==="Escape"){ $("#qInp").value=""; setQuery(""); $("#qInp").blur(); } });
+  $("#qClear").onclick = ()=>{ $("#qInp").value=""; setQuery(""); $("#qInp").focus(); };
+
+  // 截止日快捷按钮（今天 / 明天 / 下周 / 清除）
+  document.querySelectorAll(".qd").forEach(b=>{
+    b.onclick = ()=>{
+      const d = b.dataset.d;
+      if(d === "clear"){ $("#dueInp").value = ""; return; }
+      const dt = new Date(); dt.setDate(dt.getDate() + Number(d));
+      $("#dueInp").value = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0");
+    };
+  });
+
+  // 删除撤销
+  $("#undoBtn").onclick = undoDelete;
+
+  // 清除已完成（带确认）
+  $("#clearDoneBtn").onclick = ()=>{
+    const n = todos.filter(t=>t.done).length;
+    if(!n){ alert("当前没有已完成的任务。"); return; }
+    if(!confirm("确定删除全部 " + n + " 条已完成的任务？\n（建议先点「导出备份」留一份底）")) return;
+    todos = todos.filter(t=>!t.done); save(); render();
+  };
 
   // 侧栏「验证TIPS」→ 点击后在右侧主区显示可编辑内容（不再在侧栏内联展开）
   const mainEl = document.querySelector(".main");
