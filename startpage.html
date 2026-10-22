@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.35 · 2026-10-22 -->
+<!-- version: r6.36 · 2026-10-22 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -152,10 +152,11 @@
   /* 侧栏「链接直达」：可编辑、点击新标签打开 */
   .navLinks{display:flex;flex-direction:column;gap:4px}
   .linkRow{display:flex;align-items:center;gap:3px}
+  /* 非编辑态：不显示边框，只靠底色暗示可点击，视觉与 .navItem 统一 */
   .linkItem{
     flex:1;min-width:0;text-decoration:none;font-size:12px;font-weight:700;color:var(--ink);
-    background:#fff;border:1px solid var(--line);padding:5px 8px;border-radius:9px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s,border-color .15s;
+    background:var(--bg1);border:1px solid transparent;padding:5px 8px;border-radius:9px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s,border-color .15s,color .15s;
   }
   .linkItem:hover{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-d)}
   .linkBtn{
