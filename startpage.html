@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.41 · 2026-10-22 -->
+<!-- version: r6.42 · 2026-10-29 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -228,6 +228,17 @@
   }
   .spItem.done{opacity:.5;background:#fafbfc;border-left-color:var(--ok)}
   .spItem.done .spName{text-decoration:line-through;color:var(--muted)}
+  .spItem.editing{opacity:1;background:#fff;border-left-color:var(--accent)}   /* 编辑时整行提亮，避免置灰看不清 */
+  .spNameEdit{
+    flex:1;min-width:0;font-size:14px;font-weight:700;font-family:inherit;color:var(--ink);
+    border:1px solid var(--accent);outline:none;background:#fff;border-radius:7px;padding:3px 7px;
+  }
+  .spEdit{
+    border:none;background:transparent;color:#c9cfd8;font-size:10px;line-height:1;cursor:pointer;
+    width:17px;height:17px;border-radius:5px;flex:0 0 auto;padding:0;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
+  }
+  .spEdit:hover{background:var(--accent-soft);color:var(--accent-d)}
   .spChk{
     width:17px;height:17px;flex:0 0 auto;border:2px solid #c9cfd8;border-radius:50%;
     background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -247,6 +258,7 @@
   .spDel:hover{background:#fbe9ee;color:#e0556f}
   .spEmpty{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
   .spStat{text-align:center;color:var(--muted);font-size:11.5px;margin-top:12px}
+  .spHint{text-align:center;color:#b3a9bb;font-size:11px;margin-top:6px}
 
   .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
   .tipsHead h4{font-size:14px;margin:0;color:var(--accent-d)}
@@ -407,7 +419,9 @@
   .tip code{background:var(--accent-soft);color:var(--accent-d);padding:2px 6px;border-radius:6px}
 
   @media (max-width:720px){
-    .app{flex-direction:column;gap:12px}
+    /* 窄屏纵向排列：必须改回 stretch，否则 align-items:flex-start 会让 .main 按内容
+       max-content 撑宽（超长不换行文本会把整页撑出横向滚动条） */
+    .app{flex-direction:column;gap:12px;align-items:stretch}
     .sidebar,.sidebar.lock,.sidebar.follow{position:static;flex:none;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-height:none;overflow:visible}
     .pinBtn{display:none}   /* 移动端侧栏本来就在顶部，无需固定切换 */
     .brand{margin-bottom:0;flex:1 1 100%}
@@ -606,6 +620,7 @@
       <ul class="spList" id="spList"></ul>
       <div class="spEmpty" id="spEmpty" style="display:none">还没有待办事项，先加一条吧 ✨</div>
       <div class="spStat" id="spStat">—</div>
+      <div class="spHint">点圆点或文字=完成 · 双击文字或点 ✏️ 改名称（回车保存 / Esc 取消）· × 删除</div>
     </div>
 
     <div class="tip">
@@ -1213,6 +1228,7 @@
   }
   function saveSimple(){ try{ localStorage.setItem(SIMPLE_KEY, JSON.stringify(simple)); }catch(e){} }
   let simple = loadSimple();
+  let editingSimpleId = null;      // 正在改名称的条目 id（null = 无）
 
   // 创建时间：同年显示 MM-DD HH:mm，跨年补上年份
   function fmtTs(ts){
@@ -1224,23 +1240,59 @@
   }
 
   function buildSimpleLi(s){
+    const editing = s.id === editingSimpleId;
     const li = document.createElement("li");
-    li.className = "spItem" + (s.done ? " done" : "");
+    li.className = "spItem" + (s.done ? " done" : "") + (editing ? " editing" : "");
     const chk = document.createElement("div");
     chk.className = "spChk" + (s.done ? " on" : "");
     chk.textContent = s.done ? "✓" : "";
     chk.title = s.done ? "点击标记为未完成" : "点击完成";
-    const nm = document.createElement("span");
-    nm.className = "spName"; nm.textContent = s.name; nm.title = s.name;
+    const toggle = ()=>{ s.done = !s.done; saveSimple(); renderSimple(); };
+    chk.onclick = toggle;
+
     const tm = document.createElement("span");
     tm.className = "spTime"; tm.textContent = "🕒 " + fmtTs(s.ts); tm.title = "创建于 " + fmtTs(s.ts);
     const del = document.createElement("button");
     del.className = "spDel"; del.textContent = "×"; del.title = "删除";
-    const toggle = ()=>{ s.done = !s.done; saveSimple(); renderSimple(); };
-    chk.onclick = toggle;
+    del.onclick = ()=>{
+      if(s.id === editingSimpleId) editingSimpleId = null;   // 删掉正在编辑的条目时清掉编辑态
+      simple = simple.filter(x=>x.id !== s.id); saveSimple(); renderSimple();
+    };
+
+    if(editing){
+      // 编辑态：名称换成输入框，回车保存 / Esc 取消 / 失焦保存，留空则保持原名
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.className = "spNameEdit"; inp.value = s.name; inp.maxLength = 120;
+      let settled = false;
+      const finish = (commit)=>{
+        if(settled) return; settled = true;                 // 防重入：失焦与回车可能各触发一次
+        if(commit){
+          const v = (inp.value || "").trim();
+          if(v) s.name = v;                                 // 空内容不覆盖，保留原名称
+          saveSimple();
+        }
+        editingSimpleId = null; renderSimple();
+      };
+      inp.addEventListener("keydown", e=>{
+        if(e.key === "Enter"){ e.preventDefault(); finish(true); }
+        else if(e.key === "Escape"){ e.preventDefault(); finish(false); }
+      });
+      inp.addEventListener("blur", ()=> finish(true));
+      chk.onclick = ()=> finish(true);        // 编辑中点圆圈 = 收工保存，不改完成状态（避免误标）
+      li.append(chk, inp, tm, del);
+      requestAnimationFrame(()=>{ inp.focus(); inp.select(); });
+      return li;
+    }
+
+    const nm = document.createElement("span");
+    nm.className = "spName"; nm.textContent = s.name;
+    nm.title = s.name + "\n（单击=完成/取消，双击或点 ✏️ 可改名称）";
     nm.onclick = toggle;
-    del.onclick = ()=>{ simple = simple.filter(x=>x.id !== s.id); saveSimple(); renderSimple(); };
-    li.append(chk, nm, tm, del);
+    nm.ondblclick = ()=>{ editingSimpleId = s.id; renderSimple(); };
+    const edt = document.createElement("button");
+    edt.className = "spEdit"; edt.textContent = "✏️"; edt.title = "修改名称";
+    edt.onclick = ()=>{ editingSimpleId = s.id; renderSimple(); };
+    li.append(chk, nm, tm, edt, del);
     return li;
   }
 
@@ -1480,6 +1532,7 @@
   // 右侧主区三视图统一切换：task(任务清单) / simple(待办事项) / tips(验证TIPS)
   const mainEl = document.querySelector(".main");
   function setView(v){
+    if(v !== "simple") editingSimpleId = null;   // 离开待办事项页时丢弃未保存的编辑态
     mainEl.classList.toggle("simpleMode", v === "simple");
     mainEl.classList.toggle("tipsMode",   v === "tips");
     $("#navTaskList").classList.toggle("on", v === "task");   // 任务清单无专属 class，靠其余两者取反
