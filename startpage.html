@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r6.42 · 2026-10-29 -->
+<!-- version: r6.43 · 2026-11-23 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -66,12 +66,24 @@
   .pinBtn:hover{opacity:1;background:var(--accent-soft)}
   .main{flex:1;min-width:0}
 
-  /* 侧栏品牌区 */
-  .brand{display:flex;align-items:center;gap:9px;margin-bottom:10px;position:relative}
+  /* 侧栏品牌区：日期单独占一行，星期右侧放账号管理入口，避免挤压日期文字 */
+  .brand{margin-bottom:10px;position:relative}
+  .brandTop{display:flex;align-items:center;gap:9px}
   .brand .mascot{width:36px;height:36px;flex:0 0 auto}
   .brandTitle{font-size:15px;font-weight:800;line-height:1.2}
   .brand .hi{font-size:11.5px;opacity:.92;margin-top:1px}
-  .brand .date{font-size:10.5px;opacity:.85;margin-top:1px}
+  .brand .dateRow{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:6px}
+  .brand .date{
+    font-size:10.5px;opacity:.85;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .acctBtn{
+    border:1px solid var(--accent-soft);background:var(--accent-soft);color:var(--accent-d);
+    font-size:9.5px;font-weight:800;font-family:inherit;line-height:1.2;padding:3px 6px;
+    border-radius:6px;cursor:pointer;flex:0 0 auto;white-space:nowrap;transition:all .15s ease;
+  }
+  .acctBtn:hover{background:#fff;border-color:var(--accent)}
+  .acctBtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
   /* 进度条（已移除分数展示，样式保留为空以防误用） */
 
@@ -260,6 +272,72 @@
   .spStat{text-align:center;color:var(--muted);font-size:11.5px;margin-top:12px}
   .spHint{text-align:center;color:#b3a9bb;font-size:11px;margin-top:6px}
 
+  /* 账号管理页（入口在侧栏星期右侧；名称/账号/密码/备注） */
+  .acctPanel{
+    display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px;box-shadow:var(--shadow);margin-top:8px;
+  }
+  .main.acctMode .acctPanel{display:block}
+  /* 进入账号页时隐藏任务/待办/TIPS 工作区，保留底部备份栏 */
+  .main.acctMode .stickyTop,
+  .main.acctMode .moreToggle,
+  .main.acctMode .more,
+  .main.acctMode #list,
+  .main.acctMode #empty,
+  .main.acctMode .tip,
+  .main.acctMode .undoBar,
+  .main.acctMode .simplePanel,
+  .main.acctMode .tipsPanel{display:none !important}
+  .acctHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px}
+  .acctHead h4{font-size:14px;margin:0;color:var(--accent-d)}
+  .acctBack{
+    border:1px solid var(--line);background:#fff;color:var(--muted);font-size:11.5px;font-weight:700;
+    padding:5px 10px;border-radius:8px;cursor:pointer;flex:0 0 auto;
+  }
+  .acctBack:hover{background:var(--accent-soft);color:var(--accent-d);border-color:var(--accent-soft)}
+  .acctForm{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .acctFormRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .acctForm input,.acctForm textarea,.acctEdit input,.acctEdit textarea{
+    width:100%;min-width:0;border:1px solid var(--line);outline:none;background:var(--bg1);color:var(--ink);
+    font-size:13px;font-family:inherit;padding:8px 10px;border-radius:9px;
+  }
+  .acctForm textarea,.acctEdit textarea{resize:vertical;line-height:1.5}
+  .acctForm input:focus,.acctForm textarea:focus,.acctEdit input:focus,.acctEdit textarea:focus{border-color:var(--accent);background:#fff}
+  .acctAddBtn{
+    align-self:flex-end;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;
+    font-size:13px;font-weight:800;font-family:inherit;padding:8px 18px;border-radius:10px;cursor:pointer;
+  }
+  .acctAddBtn:hover{background:var(--accent-hover)}
+  .acctList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
+  .acctItem{background:var(--bg1);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .acctItem.editing{background:#fff;border-color:var(--accent)}
+  .acctItemTop{display:flex;align-items:center;gap:8px}
+  .acctName{flex:1;min-width:0;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acctTime{flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .acctMeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .acctPill{
+    font-size:11.5px;line-height:1.4;background:#fff;border:1px solid var(--line);
+    border-radius:7px;padding:4px 8px;color:var(--ink);word-break:break-all;
+  }
+  .acctPill b{color:var(--muted);font-weight:700;margin-right:4px}
+  .acctNote{font-size:12px;line-height:1.5;color:#6b6477;white-space:pre-wrap;word-break:break-word;margin-top:7px}
+  .acctActions{display:flex;gap:4px;flex:0 0 auto}
+  .acctAct{
+    border:none;background:transparent;color:#b6adb9;font-size:10px;line-height:1;cursor:pointer;
+    width:18px;height:18px;border-radius:5px;padding:0;display:flex;align-items:center;justify-content:center;
+  }
+  .acctAct:hover{background:var(--accent-soft);color:var(--accent-d)}
+  .acctAct.del:hover{background:#fbe9ee;color:#e0556f}
+  .acctEdit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;width:100%}
+  .acctEdit textarea{grid-column:1/-1}
+  .acctEditActions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px}
+  .acctEditActions button{border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer}
+  .acctSave{background:var(--accent);color:#fff}
+  .acctCancel{background:#fff;color:var(--muted);border:1px solid var(--line) !important}
+  .acctEmpty{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
+  .acctStat{text-align:center;color:var(--muted);font-size:11.5px;margin-top:10px}
+  .acctHint{text-align:center;color:#b3a9bb;font-size:11px;margin-top:6px}
+
   .tipsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
   .tipsHead h4{font-size:14px;margin:0;color:var(--accent-d)}
   .tipsAdd{border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent-d);font-weight:800;
@@ -428,6 +506,8 @@
     .nav{flex-direction:row;flex-wrap:wrap;gap:6px;flex:1 1 100%}
     .navTitle{flex:1 1 100%;margin:6px 4px 0}
     .navItem{flex:1 1 auto;text-align:center}
+    .acctFormRow,.acctEdit{grid-template-columns:1fr}
+    .acctAddBtn{align-self:stretch}
   }
   /* 顶部吸附区：搜索 + 添加栏随页面滚动固定在顶部 */
   .stickyTop{
@@ -491,12 +571,17 @@
         <circle cx="70" cy="62" r="5" fill="#ffb3cd" opacity=".7"/>
         <path d="M50 18 Q44 8 38 14 Q46 16 50 20 Q54 16 62 14 Q56 8 50 18" fill="#ff8fb1"/>
       </svg>
-      <div>
-        <div class="brandTitle">我的待办</div>
-        <div class="hi" id="hi">你好呀 👋</div>
-        <div class="date" id="date">—</div>
+      <div class="brandTop">
+        <div>
+          <div class="brandTitle">我的待办</div>
+          <div class="hi" id="hi">你好呀 👋</div>
+        </div>
+        <button class="pinBtn" id="pinBtn" title="切换侧栏滚动方式">📌 固定</button>
       </div>
-      <button class="pinBtn" id="pinBtn" title="切换侧栏滚动方式">📌 固定</button>
+      <div class="dateRow">
+        <div class="date" id="date">—</div>
+        <button class="acctBtn" id="acctBtn" title="进入账号管理页，可新增/修改账号内容">🔐 账号管理</button>
+      </div>
     </div>
 
     <nav class="nav">
@@ -623,12 +708,34 @@
       <div class="spHint">点圆点或文字=完成 · 双击文字或点 ✏️ 改名称（回车保存 / Esc 取消）· × 删除</div>
     </div>
 
+    <!-- 账号管理页：从侧栏星期右侧「🔐 账号管理」进入，可新增/修改/删除账号内容 -->
+    <div class="acctPanel" id="acctPanel">
+      <div class="acctHead">
+        <h4>🔐 账号管理</h4>
+        <button class="acctBack" id="acctBack">← 返回任务清单</button>
+      </div>
+      <div class="acctForm">
+        <div class="acctFormRow">
+          <input type="text" id="acName" maxlength="60" placeholder="名称（必填，如：Jira）" />
+          <input type="text" id="acUser" maxlength="120" placeholder="账号 / 手机号 / 邮箱" />
+          <input type="password" id="acPwd" maxlength="120" placeholder="密码（可留空）" />
+        </div>
+        <textarea id="acNote" rows="2" maxlength="500" placeholder="备注（可留空，如用途、绑定邮箱等）"></textarea>
+        <button class="acctAddBtn" id="acAddBtn">添加账号</button>
+      </div>
+      <ul class="acctList" id="acctList"></ul>
+      <div class="acctEmpty" id="acEmpty" style="display:none">还没有账号，先在上面添加一条吧 🔐</div>
+      <div class="acctStat" id="acStat">—</div>
+      <div class="acctHint">✏️ 修改 · × 删除 · 有密码时可点 👁 / 🙈 切换显示 · 数据只存本机浏览器</div>
+    </div>
+
     <div class="tip">
       数据保存在本机浏览器（localStorage），不会上传。<br/>
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
       点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / 测试用例 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带状态三态标签，<b>按类型显示不同文案</b>：<b>版本需求</b>显示灰色「测试用例未分配」（点一下即分配）→ 蓝色「测试用例编写中」→ 绿色「✓ 测试用例已完成」；<b>活动类任务</b>显示灰色「FT1未测」→ 蓝色「FT1测试中」→ 绿色「✓ FT1 已测」；点标签即可逐级流转，<b>整行底色同步区分</b>：未开始=浅灰底、进行中=<b>蓝底</b>（标题加粗）、已完成=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
       侧栏「💡 验证TIPS」是验证流程小抄：点文字直接改、× 删除、＋ 新增，按住每行左侧的 ⠿ <b>可上下拖动调整顺序</b>（拖到哪行就在哪行插入，顺序会随备份搬运）。<br/>
+      侧栏星期右侧的「🔐 账号管理」进入独立页面：可新增名称 / 账号 / 密码 / 备注，支持修改、删除、密码显示切换；内容只存本机，并随底部「导出/导入备份」一起搬运。<br/>
       侧栏「分类 → 活动」筛选的是所有标记为「是否活动」的任务（与"活动名称"文本无关）；"活动名称"只用于列表上的 🏷 标签显示。<br/>
       ⚠️ 数据按"打开方式"隔离：用预览和用浏览器直接打开文件是不同位置，混用会看不到彼此的数据，建议固定一种方式。
     </div>
@@ -1319,6 +1426,143 @@
   $("#spInp").addEventListener("keydown", e=>{ if(e.key === "Enter") addSimple(); });
   renderSimple();
 
+  /* ========== 账号管理页（名称 / 账号 / 密码 / 备注） ========== */
+  const ACCOUNT_KEY = "startpage_accounts_v1";
+  function loadAccounts(){
+    try{
+      const r = JSON.parse(localStorage.getItem(ACCOUNT_KEY));
+      if(Array.isArray(r)) return r.map(a=>({
+        id: String(a.id || uid()),
+        name: String(a.name || ""),
+        user: String(a.user || ""),
+        pwd:  String(a.pwd  || ""),
+        note: String(a.note || ""),
+        ts: Number(a.ts) || Date.now()
+      }));
+    }catch(e){}
+    return [];
+  }
+  function saveAccounts(){
+    try{ localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts)); }
+    catch(e){ alert("保存失败：本机存储空间可能已满"); }
+  }
+  let accounts = loadAccounts();
+  let editingAccountId = null;         // 正在编辑的账号 id
+  const shownAcctPwd = new Set();      // 临时显示密码的条目（不持久化）
+
+  function buildAcctLi(a){
+    const li = document.createElement("li");
+    const editing = a.id === editingAccountId;
+    li.className = "acctItem" + (editing ? " editing" : "");
+
+    if(editing){
+      const box = document.createElement("div"); box.className = "acctEdit";
+      const ni = document.createElement("input"); ni.type="text";     ni.value=a.name; ni.maxLength=60;  ni.placeholder="名称（必填）";
+      const ui = document.createElement("input"); ui.type="text";     ui.value=a.user; ui.maxLength=120; ui.placeholder="账号 / 手机号 / 邮箱";
+      const pi = document.createElement("input"); pi.type="password"; pi.value=a.pwd;  pi.maxLength=120; pi.placeholder="密码（可留空）";
+      const ti = document.createElement("textarea"); ti.value=a.note; ti.maxLength=500; ti.rows=2; ti.placeholder="备注（可留空）";
+      const acts = document.createElement("div"); acts.className="acctEditActions";
+      const sv = document.createElement("button"); sv.className="acctSave";   sv.textContent="保存";
+      const cx = document.createElement("button"); cx.className="acctCancel"; cx.textContent="取消";
+      let settled = false;
+      const finish = (commit)=>{
+        if(settled) return; settled = true;
+        if(commit){
+          const v = (ni.value||"").trim();
+          if(!v){ alert("名称不能为空"); settled = false; ni.focus(); return; }
+          a.name = v; a.user = (ui.value||"").trim(); a.pwd = pi.value; a.note = (ti.value||"").trim();
+          saveAccounts();
+        }
+        editingAccountId = null; renderAccounts();
+      };
+      sv.onclick = ()=> finish(true);
+      cx.onclick = ()=> finish(false);
+      const onKey = e=>{
+        if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); finish(true); }
+        else if(e.key === "Escape"){ e.preventDefault(); finish(false); }
+      };
+      [ni,ui,pi,ti].forEach(el=>el.addEventListener("keydown", onKey));
+      acts.append(sv,cx); box.append(ni,ui,pi,ti,acts); li.appendChild(box);
+      requestAnimationFrame(()=>{ ni.focus(); ni.select(); });
+      return li;
+    }
+
+    const top = document.createElement("div"); top.className = "acctItemTop";
+    const nm = document.createElement("span"); nm.className = "acctName"; nm.textContent = a.name; nm.title = a.name;
+    const tm = document.createElement("span"); tm.className = "acctTime"; tm.textContent = "🕒 " + fmtTs(a.ts); tm.title = "创建于 " + fmtTs(a.ts);
+    const acts = document.createElement("div"); acts.className = "acctActions";
+    if(a.pwd){
+      const shown = shownAcctPwd.has(a.id);
+      const eye = document.createElement("button");
+      eye.className = "acctAct"; eye.textContent = shown ? "🙈" : "👁";
+      eye.title = shown ? "隐藏密码" : "显示密码";
+      eye.onclick = ()=>{
+        if(shown) shownAcctPwd.delete(a.id); else shownAcctPwd.add(a.id);
+        renderAccounts();
+      };
+      acts.appendChild(eye);
+    }
+    const ed = document.createElement("button"); ed.className="acctAct"; ed.textContent="✏️"; ed.title="修改";
+    ed.onclick = ()=>{ editingAccountId = a.id; renderAccounts(); };
+    const del = document.createElement("button"); del.className="acctAct del"; del.textContent="×"; del.title="删除";
+    del.onclick = ()=>{
+      if(!confirm(`确定删除「${a.name}」吗？`)) return;
+      shownAcctPwd.delete(a.id);
+      if(editingAccountId === a.id) editingAccountId = null;
+      accounts = accounts.filter(x=>x.id !== a.id); saveAccounts(); renderAccounts();
+    };
+    acts.append(ed,del); top.append(nm,tm,acts); li.appendChild(top);
+
+    const meta = document.createElement("div"); meta.className="acctMeta";
+    const addPill = (label, value)=>{
+      const pill = document.createElement("span"); pill.className="acctPill";
+      const b = document.createElement("b"); b.textContent = label;
+      const s = document.createElement("span"); s.textContent = value;
+      pill.append(b,s); meta.appendChild(pill);
+    };
+    if(a.user) addPill("账号", a.user);
+    if(a.pwd)  addPill("密码", shownAcctPwd.has(a.id) ? a.pwd : "••••••");
+    if(meta.children.length) li.appendChild(meta);
+    if(a.note){
+      const nt = document.createElement("div"); nt.className="acctNote"; nt.textContent = a.note;
+      li.appendChild(nt);
+    }
+    return li;
+  }
+
+  function renderAccounts(){
+    const ul = $("#acctList"); if(!ul) return;
+    ul.innerHTML = "";
+    accounts.slice().sort((a,b)=>b.ts-a.ts).forEach(a=> ul.appendChild(buildAcctLi(a)));
+    $("#acEmpty").style.display = accounts.length ? "none" : "block";
+    $("#acStat").textContent = accounts.length
+      ? `共 ${accounts.length} 条 · 已存密码 ${accounts.filter(a=>a.pwd).length} 条`
+      : "—";
+  }
+  function addAccount(){
+    const ni = $("#acName"), ui = $("#acUser"), pi = $("#acPwd"), ti = $("#acNote");
+    const name = (ni.value||"").trim();
+    if(!name){ alert("请先填写名称"); ni.focus(); return; }
+    accounts.push({
+      id: uid(), name,
+      user: (ui.value||"").trim(),
+      pwd: pi.value,
+      note: (ti.value||"").trim(),
+      ts: Date.now()
+    });
+    saveAccounts();
+    ni.value=""; ui.value=""; pi.value=""; ti.value="";
+    renderAccounts(); ni.focus();
+  }
+  $("#acAddBtn").onclick = addAccount;
+  ["#acName","#acUser","#acPwd"].forEach(id=>{
+    $(id).addEventListener("keydown", e=>{ if(e.key === "Enter") addAccount(); });
+  });
+  $("#acNote").addEventListener("keydown", e=>{
+    if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addAccount(); }
+  });
+  renderAccounts();
+
   // 问候 + 日期
   (function(){
     const now = new Date();
@@ -1529,25 +1773,31 @@
     todos = todos.filter(t=>!t.done); save(); render();
   };
 
-  // 右侧主区三视图统一切换：task(任务清单) / simple(待办事项) / tips(验证TIPS)
+  // 右侧主区四视图统一切换：task(任务清单) / simple(待办事项) / tips(验证TIPS) / acct(账号管理)
   const mainEl = document.querySelector(".main");
   function setView(v){
     if(v !== "simple") editingSimpleId = null;   // 离开待办事项页时丢弃未保存的编辑态
+    if(v !== "acct")   editingAccountId = null;  // 离开账号管理页时丢弃未保存的编辑态
     mainEl.classList.toggle("simpleMode", v === "simple");
     mainEl.classList.toggle("tipsMode",   v === "tips");
-    $("#navTaskList").classList.toggle("on", v === "task");   // 任务清单无专属 class，靠其余两者取反
+    mainEl.classList.toggle("acctMode",   v === "acct");
+    $("#navTaskList").classList.toggle("on", v === "task");   // 任务清单无专属 class，靠其余取反
     $("#navSimple").classList.toggle("on",   v === "simple");
     $("#tipsToggle").classList.toggle("on",  v === "tips");
+    $("#acctBtn").classList.toggle("on",     v === "acct");
     if(v === "simple") renderSimple();
     if(v === "tips") requestAnimationFrame(growAllTips);      // 面板由隐藏变可见后，按真实宽度重算高度
+    if(v === "acct") renderAccounts();
   }
   $("#navTaskList").onclick = ()=> setView("task");
   $("#navSimple").onclick   = ()=> setView("simple");
   $("#tipsToggle").onclick  = ()=> setView(mainEl.classList.contains("tipsMode") ? "task" : "tips");
-  // 点分类筛选时回到任务清单页（分类对「待办事项」无意义）
+  $("#acctBtn").onclick     = ()=> setView(mainEl.classList.contains("acctMode") ? "task" : "acct");
+  $("#acctBack").onclick    = ()=> setView("task");
+  // 点分类筛选时回到任务清单页（分类对「待办事项 / 账号管理」无意义）
   document.querySelectorAll(".navItem[data-c]").forEach(b=>{
     b.addEventListener("click", ()=>{
-      if(mainEl.classList.contains("tipsMode") || mainEl.classList.contains("simpleMode")) setView("task");
+      if(mainEl.classList.contains("tipsMode") || mainEl.classList.contains("simpleMode") || mainEl.classList.contains("acctMode")) setView("task");
     });
   });
 
@@ -1734,13 +1984,14 @@
   function backupExport(){
     const data = {
       _app: "startpage",
-      _v: "r6.38",
+      _v: "r6.43",
       todos: localStorage.getItem(KEY),
       versions: localStorage.getItem(KEY_V),
       tips: localStorage.getItem(TIPS_KEY),
       nvOpen: localStorage.getItem(NV_KEY),
       links: localStorage.getItem(LINKS_KEY),
-      simple: localStorage.getItem(SIMPLE_KEY)
+      simple: localStorage.getItem(SIMPLE_KEY),
+      accounts: localStorage.getItem(ACCOUNT_KEY)
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1764,8 +2015,10 @@
         if(data.nvOpen != null) localStorage.setItem(NV_KEY, data.nvOpen);
         if(data.links != null) localStorage.setItem(LINKS_KEY, data.links);
         if(data.simple != null) localStorage.setItem(SIMPLE_KEY, data.simple);
+        if(data.accounts != null) localStorage.setItem(ACCOUNT_KEY, data.accounts);
         todos = load(); versions = loadV(); tips = loadTips(); nvOpen = loadNvOpen(); links = loadLinks(); renderLinks();
         simple = loadSimple(); renderSimple();
+        accounts = loadAccounts(); renderAccounts();
         refreshVerSel(); render(); renderTips();
       }catch(e){ alert("导入失败：" + e.message); }
     };
