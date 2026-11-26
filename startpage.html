@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>我的启动主页 · 待办清单</title>
-<!-- version: r7.0 · 2026-11-26 -->
+<!-- version: r7.1 · 2026-11-26 -->
 <style>
   :root{
     --accent:#3b82f6;
@@ -429,6 +429,12 @@
   .pill.due.over{background:#ffe9ec;color:var(--p-high)}
   .pill.who{background:#eef0ff;color:#6b6bd6}
   .pill.who.empty{background:transparent;color:var(--muted);border:1px dashed #cfc6d6;padding:4px 8px}
+  .pill.prog{background:#eaf6ee;color:#3b8a5b;cursor:pointer;user-select:none}
+  .pill.prog:hover{background:#d8f0e2}
+  .pill.prog.zero{background:transparent;color:var(--muted);border:1px dashed #cfc6d6;padding:4px 8px}
+  .progEdit{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--accent);
+    border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800;color:var(--ok)}
+  .progEdit input[type=range]{width:78px;accent-color:var(--ok)}
   .pill.act{background:#e6f7f4;color:#2aa39a}
   .pill.assign{cursor:pointer;background:#eef1f6;color:#6b6477;user-select:none;transition:background .12s}
   .pill.assign:hover{background:#e4e8f0}
@@ -716,8 +722,9 @@
       </div>
     </div>
     <div class="moreRow">
-      <span class="lbl">执行人</span>
-      <input type="text" id="whoInp" maxlength="20" placeholder="谁来做（可留空）" style="border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);flex:1;min-width:0" />
+      <span class="lbl">指派给</span>
+      <input type="text" id="whoInp" list="accountOptions" maxlength="20" placeholder="选择账号，或输入执行人" style="border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:var(--bg1);color:var(--ink);flex:1;min-width:0" />
+      <datalist id="accountOptions"></datalist>
     </div>
     <div class="moreRow">
       <span class="lbl">版本</span>
@@ -827,6 +834,7 @@
 
     <div class="tip">
       打开页面需先登录：账号由管理员在「👤 用户管理」里分配，首次默认管理员 <b>admin / 123456</b>，登录后请尽快改密码。账号和数据都保存在本机浏览器，不上传云端。<br/>
+      任务「指派给」选择登录账号后，<b>普通用户只能看到指派给自己的任务</b>，管理员看全部；同一浏览器的多个账号共享同一份清单，<b>跨设备需靠导出/导入备份</b>（不走云服务）。任务行的 <b>📊 百分比</b> 可点开滑块调整完成进度（0-100%），勾选完成会自动设为 100%。<br/>
       顶部搜索框可按<b>任务文字 / 执行人 / 活动 / 备注 / 版本名</b>过滤（Esc 或 × 清空）；删错任务别慌——删除后底部会出现「撤销」条，8 秒内可还原；底部「🧹 清除已完成」可一次性清理已完成任务（带确认）；「更多选项」里的截止日可用「今天 / 明天 / 下周」一键填入。<br/>
       添加时点开"更多选项"可选 <b>版本</b> / <b>活动</b>：选版本后任务会<b>归入该版本、显示在版本内</b>（可折叠、点名称重命名、🗑 删除版本会把任务移出）；选活动后同一批多行任务都带上 🏷 活动标签。<br/>
       点任务上的 ✏️ 可改文字 / 优先级 / 截止日 / 执行人 / 版本 / 活动 / 无需验证 / 是否活动 / 测试用例 / 备注；列表里的「👤 执行人」和「📝 备注」都可点开直接编辑（备注 Ctrl/⌘+回车 或 失焦保存，Esc 取消）；每条任务都带状态三态标签，<b>按类型显示不同文案</b>：<b>版本需求</b>显示灰色「测试用例未分配」（点一下即分配）→ 蓝色「测试用例编写中」→ 绿色「✓ 测试用例已完成」；<b>活动类任务</b>显示灰色「FT1未测」→ 蓝色「FT1测试中」→ 绿色「✓ FT1 已测」；点标签即可逐级流转，<b>整行底色同步区分</b>：未开始=浅灰底、进行中=<b>蓝底</b>（标题加粗）、已完成=绿底；点「无需验证」标签可切换，选中后整行置灰显示（置灰优先级最高）；<b>无需验证</b>和<b>已完成</b>的任务在每个版本内默认收起，显示在底部「▸ 展开无需验证 N 项」「▸ 展开已完成 N 项」按钮里，点一下才展开（展开状态会记住，并随备份搬运）。侧栏「📝 待办事项」是一个独立的轻量清单页：只填名称、点圆点完成、自动记录创建时间，适合随手记。<br/>
@@ -887,12 +895,18 @@
   let editFt1 = false;       // 编辑时的临时"状态是否已完成"（版本需求=测试用例，活动类=FT1）
 
   const PRI_RANK = {高:0, 中:1, 低:2};
+  // 老任务补默认进度：已完成=100%，未完成=0%
+  function normTask(t){
+    if(typeof t.progress !== "number" || isNaN(t.progress)) t.progress = t.done ? 100 : 0;
+    t.progress = Math.max(0, Math.min(100, Math.round(t.progress)));
+    return t;
+  }
 
   // 载入 v2；若 v2 为空但 v1 有数据，则自动迁移（补全新字段），避免升级丢数据
   function load(){
     try{
       const cur = JSON.parse(localStorage.getItem(KEY));
-      if(Array.isArray(cur) && cur.length) return cur;
+      if(Array.isArray(cur) && cur.length) return cur.map(normTask);
     }catch(e){}
     try{
       const old = JSON.parse(localStorage.getItem(KEY_OLD));
@@ -911,7 +925,8 @@
           noverify: !!t.noverify,
           isAct: !!t.isAct,
           note: t.note || "",
-          ft1Tested: !!t.ft1Tested
+          ft1Tested: !!t.ft1Tested,
+          progress: t.done ? 100 : 0
         }));
         localStorage.setItem(KEY, JSON.stringify(migrated));
         return migrated;
@@ -954,7 +969,10 @@
     const items = splitTasks(raw);
     if(!items.length) return;
     const now = Date.now();
-    const w = (who||"").trim();
+    // 普通用户只能把任务指派给自己；管理员可指派给任意账号
+    const w = currentUser && currentUser.role !== "admin"
+      ? currentUser.username
+      : (who||"").trim();
     const act = (activity||"").trim();
     const g = gid || "";
     const nv = !!noverify;
@@ -962,13 +980,15 @@
     const nt = (note||"").trim();
     items.forEach((text,i)=>{
       // ts 递减，保证先写的项目排在最前；新任务默认未分配 → 状态为「未分配 / 未测」
-      todos.unshift({ id:uid(), text, done:false, ts:now - i, pri, due:due||"", who:w, gid:g, activity:act, noverify:nv, isAct:ia, note:nt, ft1Tested:false });
+      todos.unshift({ id:uid(), text, done:false, ts:now - i, pri, due:due||"", who:w, gid:g, activity:act, noverify:nv, isAct:ia, note:nt, ft1Tested:false, progress:0 });
     });
     save(); render();
   }
   function toggle(id){
     const t = todos.find(x=>x.id===id); if(!t) return;
-    t.done = !t.done; save(); render();
+    t.done = !t.done;
+    t.progress = t.done ? 100 : 0;    // 勾完成=100%，取消勾选=0%
+    save(); render();
   }
   function remove(id){
     const idx = todos.findIndex(x=>x.id===id); if(idx < 0) return;
@@ -997,14 +1017,16 @@
   }
   function startEdit(id){ editingId = id; render(); }
   function cancelEdit(){ editingId = null; render(); }
-  function saveEdit(id, text, due, who, gid, activity, noverify, isAct, note, ft1Tested){
+  function saveEdit(id, text, due, who, gid, activity, noverify, isAct, note, ft1Tested, progress){
     const t = todos.find(x=>x.id===id); if(!t) return;
     const v = (text||"").trim();
     if(!v){ cancelEdit(); return; }
-    t.text = v; t.pri = editPri; t.due = due||""; t.who = (who||"").trim();
+    t.text = v; t.pri = editPri; t.due = due||"";
+    t.who = currentUser && currentUser.role !== "admin" ? currentUser.username : (who||"").trim();
     t.gid = gid || ""; t.activity = (activity||"").trim();
     t.noverify = !!noverify; t.isAct = !!isAct; t.note = (note||"").trim();
     t.ft1Tested = !!ft1Tested;   // 状态适用于所有任务（版本需求=测试用例，活动类=FT1）
+    t.progress = Math.max(0, Math.min(100, Math.round(Number(progress) || 0)));
     editingId = null; save(); render();
   }
 
@@ -1016,12 +1038,16 @@
 
     const ta = document.createElement("input");
     ta.className = "editText"; ta.type = "text"; ta.value = t.text; ta.maxLength = 120;
-    ta.addEventListener("keydown", e=>{ if(e.key==="Enter") saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1); });
+    ta.addEventListener("keydown", e=>{ if(e.key==="Enter") saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1, pi.value); });
     box.appendChild(ta);
 
     const whoRow = document.createElement("div"); whoRow.className = "editRow";
-    const wlbl = document.createElement("span"); wlbl.className = "lbl"; wlbl.textContent = "执行人";
+    const wlbl = document.createElement("span"); wlbl.className = "lbl"; wlbl.textContent = "指派给";
     const wi = document.createElement("input"); wi.type = "text"; wi.value = t.who || ""; wi.maxLength = 20;
+    wi.setAttribute("list", "accountOptions");
+    if(currentUser && currentUser.role !== "admin"){
+      wi.value = currentUser.username; wi.readOnly = true; wi.title = "普通用户只能编辑指派给自己的任务";
+    }
     wi.style.cssText = "flex:1;min-width:0;border:none;outline:none;font-size:13px;padding:7px 10px;border-radius:10px;background:#fff;color:var(--ink)";
     whoRow.append(wlbl, wi); box.appendChild(whoRow);
 
@@ -1049,6 +1075,16 @@
     const dlbl = document.createElement("span"); dlbl.className = "lbl"; dlbl.textContent = "截止日";
     const di = document.createElement("input"); di.type = "date"; di.value = t.due || "";
     dueRow.append(dlbl, di); box.appendChild(dueRow);
+
+    // 完成进度（0-100%）
+    const progRow = document.createElement("div"); progRow.className = "editRow";
+    const plbl = document.createElement("span"); plbl.className = "lbl"; plbl.textContent = "完成进度";
+    const pwrap = document.createElement("div"); pwrap.className = "progEdit";
+    const pi = document.createElement("input"); pi.type = "range"; pi.min = "0"; pi.max = "100"; pi.step = "5";
+    pi.value = t.progress || 0;
+    const ptxt = document.createElement("span"); ptxt.textContent = pi.value + "%";
+    pi.oninput = ()=>{ ptxt.textContent = pi.value + "%"; };
+    pwrap.append(pi, ptxt); progRow.append(plbl, pwrap); box.appendChild(progRow);
 
     // 版本（移入/移出版本）
     const verRow = document.createElement("div"); verRow.className = "editRow";
@@ -1113,26 +1149,28 @@
 
     const acts = document.createElement("div"); acts.className = "editActions";
     const save = document.createElement("button"); save.className = "btnSave"; save.textContent = "保存";
-    save.onclick = ()=>saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1);
+    save.onclick = ()=>saveEdit(t.id, ta.value, di.value, wi.value, editGid, editAct, editNv, editIsAct, editNote, editFt1, pi.value);
     const cancel = document.createElement("button"); cancel.className = "btnCancel"; cancel.textContent = "取消";
     cancel.onclick = ()=>cancelEdit();
     acts.append(save, cancel); box.appendChild(acts);
     return box;
   }
 
-  // 列表内可直接编辑的执行人控件：点击变输入框，回车/失焦保存，Esc 取消
+  // 列表内可直接编辑的指派控件：点击变输入框，回车/失焦保存，Esc 取消
   function makeWhoControl(t){
     const el = document.createElement("span");
     const paint = ()=>{
       el.className = "pill who" + (t.who ? "" : " empty");
-      el.textContent = t.who ? "👤 " + t.who : "＋ 执行人";
+      el.textContent = t.who ? "👤 " + t.who : "＋ 指派";
     };
     paint();
     el.style.cursor = "pointer";
-    el.title = "点击编辑执行人";
+    el.title = "点击编辑指派账号";
     el.onclick = ()=>{
+      if(currentUser && currentUser.role !== "admin"){ el.title = "普通用户只能编辑指派给自己的任务"; return; }
       const inp = document.createElement("input");
       inp.type = "text"; inp.value = t.who || ""; inp.maxLength = 20;
+      inp.setAttribute("list", "accountOptions");
       inp.size = Math.max(4, (t.who||"").length + 1);
       inp.style.cssText = "border:1px solid var(--accent);outline:none;font-size:11px;font-weight:700;line-height:1;background:#fff;color:var(--ink);border-radius:7px;padding:4px 6px;min-width:0;align-self:center";
       el.replaceWith(inp);
@@ -1143,6 +1181,32 @@
         else if(e.key==="Escape"){ paint(); inp.replaceWith(el); }
       });
       inp.addEventListener("blur", commit);
+    };
+    return el;
+  }
+
+  // 列表内可直接编辑的完成进度：点百分比变滑块，0-100% 每 5% 一档
+  function makeProgressControl(t){
+    const el = document.createElement("span");
+    const paint = ()=>{
+      const v = typeof t.progress === "number" ? t.progress : (t.done ? 100 : 0);
+      el.className = "pill prog" + (v ? "" : " zero");
+      el.textContent = "📊 " + v + "%";
+      el.title = "点击调整完成进度";
+    };
+    paint();
+    el.onclick = ()=>{
+      const wrap = document.createElement("span"); wrap.className = "progEdit";
+      const r = document.createElement("input"); r.type = "range"; r.min = "0"; r.max = "100"; r.step = "5";
+      r.value = typeof t.progress === "number" ? t.progress : 0;
+      const lab = document.createElement("span"); lab.textContent = r.value + "%";
+      let committed = false;
+      const commit = ()=>{ if(committed) return; committed = true; t.progress = Math.max(0, Math.min(100, Number(r.value)||0)); save(); render(); };
+      r.oninput = ()=>{ lab.textContent = r.value + "%"; };
+      r.addEventListener("change", commit);
+      r.addEventListener("blur", commit);
+      wrap.append(r, lab);
+      el.replaceWith(wrap); r.focus();
     };
     return el;
   }
@@ -1233,6 +1297,7 @@
     const p = document.createElement("span");
     p.className = "pill pri pri-"+t.pri; p.textContent = t.pri;
     meta.appendChild(p);
+    meta.appendChild(makeProgressControl(t));
     if(t.due){
       const d = document.createElement("span");
       const over = isOverdue(t);
@@ -1402,7 +1467,7 @@
 
   function render(){
     const list = $("#list"); list.innerHTML = "";
-    const view = todos.filter(t =>
+    const view = visibleTodos().filter(t =>
       (filter==="all" ? true : filter==="done" ? t.done : !t.done)
       && (catFilter==="all" ? true
           : catFilter==="activity" ? !!t.isAct
@@ -2100,7 +2165,7 @@
   function backupExport(){
     const data = {
       _app: "startpage",
-      _v: "r7.0",
+      _v: "r7.1",
       todos: localStorage.getItem(KEY),
       versions: localStorage.getItem(KEY_V),
       tips: localStorage.getItem(TIPS_KEY),
@@ -2138,6 +2203,7 @@
         simple = loadSimple(); renderSimple();
         accounts = loadAccounts(); renderAccounts();
         loginUsers = readLoginUsers() || loginUsers;
+        fillAccountDatalist();
         if(currentUser && !loginUsers.some(u=>u.id===currentUser.id)) doLogout();
         else updateUserUI();
         refreshVerSel(); render(); renderTips();
@@ -2154,6 +2220,20 @@
   const LOGIN_SESSION_KEY = "startpage_login_session_v1";
   let loginUsers = [];
   let currentUser = null;
+
+  // 普通用户只看指派给自己的任务；管理员看全部
+  function visibleTodos(){
+    if(currentUser && currentUser.role !== "admin"){
+      const me = (currentUser.username || "").toLowerCase();
+      return todos.filter(t=>(t.who || "").toLowerCase() === me);
+    }
+    return todos;
+  }
+  function fillAccountDatalist(){
+    const dl = $("#accountOptions"); if(!dl) return;
+    dl.innerHTML = "";
+    loginUsers.forEach(u=>{ const o=document.createElement("option"); o.value=u.username; dl.appendChild(o); });
+  }
 
   function bufHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join(""); }
   function makeSalt(){
@@ -2199,9 +2279,10 @@
     const sid = localStorage.getItem(LOGIN_SESSION_KEY);
     currentUser = loginUsers.find(u=>u.id===sid) || null;
     $("#loginBtn").disabled = false;
+    fillAccountDatalist();
     if(currentUser) $("#loginOverlay").hidden = true;
     else showLogin("");
-    updateUserUI();
+    updateUserUI(); render();
   }
   async function doLogin(){
     if($("#loginBtn").disabled) return;
@@ -2213,14 +2294,14 @@
     localStorage.setItem(LOGIN_SESSION_KEY, rec.id);
     $("#loginPwd").value = "";
     $("#loginOverlay").hidden = true;
-    updateUserUI(); setView("task");
+    updateUserUI(); setView("task"); render();
   }
   function doLogout(){
     currentUser = null;
     localStorage.removeItem(LOGIN_SESSION_KEY);
     setView("task");
     $("#loginPwd").value = "";
-    updateUserUI(); showLogin("");
+    updateUserUI(); showLogin(""); render();
   }
   function renderUsers(){
     if(!currentUser || currentUser.role !== "admin") return;
@@ -2256,7 +2337,7 @@
     if(pwd.length < 6){ $("#userErr").textContent = "初始密码至少 6 位"; return; }
     const salt = makeSalt();
     loginUsers.push({ id:uid(), username:name, salt, hash:await hashPwd(pwd, salt), role:"user", ts:Date.now() });
-    saveLoginUsers();
+    saveLoginUsers(); fillAccountDatalist();
     $("#newUserName").value = ""; $("#newUserPwd").value = "";
     $("#userErr").textContent = "已分配账号 " + name;
     renderUsers();
